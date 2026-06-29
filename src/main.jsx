@@ -6,6 +6,8 @@ import {
   ArrowUp,
   AudioLines,
   Clapperboard,
+  FolderKanban,
+  House,
   Compass,
   FileAudio,
   FileText,
@@ -39,17 +41,20 @@ import {
 import './index.css';
 
 const sideNav = [
-  { id: 'Generate', label: '댄스', icon: Footprints },
-  { id: 'Explore', label: '탐색', icon: Compass }
+  { id: 'Home', label: '홈', icon: House },
+  { id: 'Projects', label: '프로젝트', icon: FolderKanban },
+  { id: 'Search', label: '검색', icon: Search },
+  { id: 'Explore', label: '탐색', icon: Compass },
+  { id: 'Dance', label: '댄스', icon: Footprints }
 ];
+const legacyRouteAliases = { Generate: 'Home' };
 const routeIds = [...sideNav.map((item) => item.id), 'Credits'];
-const sideNavIds = sideNav.map((item) => item.id);
 const modes = [
   { name: 'YouTube', icon: Clapperboard },
   { name: 'SoundCloud', icon: AudioLines },
   { name: 'Audio', icon: FileAudio }
 ];
-const defaultPage = 'Generate';
+const defaultPage = 'Home';
 
 const communityVideos = [
   { title: 'Kelis - Milkshake', creator: 'CorrespondingHarlequin', likes: 36, src: '/community/milkshake.mp4', tone: 'from-[#e5de1f]/40' },
@@ -73,6 +78,20 @@ const communityVideos = [
 ];
 
 const communityTags = ['All', 'Trending', 'K-pop', 'Street', 'Loop', 'Ballad'];
+
+
+const projects = [
+  { name: 'BLACKPINK hook remix', type: 'K-pop', status: 'Ready', updated: '오늘', source: 'YouTube', dances: 4, tone: 'from-mvnt-orange/22' },
+  { name: 'Street pop draft', type: 'Street', status: 'Composing', updated: '어제', source: 'Upload', dances: 2, tone: 'from-violet-400/18' },
+  { name: 'Ballad silhouette pack', type: 'Slow', status: 'Review', updated: '3일 전', source: 'SoundCloud', dances: 6, tone: 'from-sky-300/16' },
+  { name: 'Creator intro loop', type: 'Shorts', status: 'Ready', updated: '지난주', source: 'Audio', dances: 3, tone: 'from-mvnt-yellow/18' }
+];
+
+const projectStats = [
+  { label: '진행 중', value: '4', detail: 'active projects' },
+  { label: '생성된 댄스', value: '15', detail: 'draft dances' },
+  { label: '이번 달 사용량', value: '82s', detail: 'of 150s free' }
+];
 
 function getCommunityVideoTags(video, index) {
   const text = `${video.title} ${video.creator}`.toLowerCase();
@@ -277,7 +296,8 @@ function readPageFromHash() {
   const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
   if (path.toLowerCase() === 'credits') return 'Credits';
   const value = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''));
-  return routeIds.includes(value) ? value : defaultPage;
+  const normalizedValue = legacyRouteAliases[value] || value;
+  return routeIds.includes(normalizedValue) ? normalizedValue : defaultPage;
 }
 
 function getMusicPayload(dataTransfer) {
@@ -355,7 +375,7 @@ function App() {
     const acceptMusic = (payload) => {
       if (!payload) return false;
       setMusicSource(payload);
-      navigate('Generate');
+      navigate('Home');
       return true;
     };
     const handlePaste = (event) => {
@@ -419,10 +439,16 @@ function App() {
       <main ref={mainRef} className={`mx-auto h-screen w-[min(1440px,calc(100vw-32px))] overflow-y-auto overscroll-contain transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
         <TopHeader activePage={activePage} sidebarExpanded={sidebarExpanded} onNavigate={navigate} />
         <div className="relative isolate z-0">
-          {activePage === 'Explore' ? (
+          {activePage === 'Projects' ? (
+            <ProjectsPage />
+          ) : activePage === 'Search' ? (
+            <SearchPage />
+          ) : activePage === 'Explore' ? (
             <ExplorePage />
+          ) : activePage === 'Dance' ? (
+            <DancePage />
           ) : (
-            <GeneratePage musicSource={musicSource} onMusicSourceChange={setMusicSource} />
+            <HomePage musicSource={musicSource} onMusicSourceChange={setMusicSource} />
           )}
         </div>
       </main>
@@ -594,7 +620,7 @@ function DropOverlay() {
   );
 }
 
-function GeneratePage({ musicSource, onMusicSourceChange }) {
+function HomePage({ musicSource, onMusicSourceChange }) {
   const [mode, setMode] = useState('YouTube');
   const [status, setStatus] = useState('Generate');
   const [headlineProgress, setHeadlineProgress] = useState(100);
@@ -1159,6 +1185,117 @@ function MusicIdentityOverlay({ reel, index }) {
   );
 }
 
+
+function ProjectsPage() {
+  return (
+    <section className="min-h-screen px-2 pb-20 pt-24">
+      <div className="mx-auto w-[min(1120px,100%)]">
+        <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div>
+            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.045] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-mvnt-muted">
+              <FolderKanban size={14} /> Projects
+            </span>
+            <h1 className="text-[clamp(38px,6vw,74px)] font-black leading-[0.95] tracking-[-0.06em] text-white">프로젝트</h1>
+            <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-mvnt-muted sm:text-base">음악 소스, 생성된 댄스 초안, 검토 상태를 한 곳에서 관리하는 작업 공간입니다.</p>
+          </div>
+          <button type="button" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-5 text-sm font-black text-white shadow-[0_16px_38px_rgba(255,138,0,.2)]">
+            <Plus size={17} /> 새 프로젝트
+          </button>
+        </div>
+
+        <div className="mb-5 grid gap-3 md:grid-cols-3">
+          {projectStats.map((stat) => (
+            <article key={stat.label} className="rounded-[24px] border border-white/10 bg-white/[.035] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+              <span className="text-[11px] font-black uppercase tracking-[0.16em] text-mvnt-muted">{stat.label}</span>
+              <strong className="mt-3 block text-4xl font-black tracking-[-0.06em] text-white">{stat.value}</strong>
+              <span className="mt-1 block text-xs font-bold text-mvnt-muted">{stat.detail}</span>
+            </article>
+          ))}
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          {projects.map((project, index) => (
+            <article key={project.name} className="group relative isolate overflow-hidden rounded-[30px] border border-white/10 bg-neutral-950 p-5 shadow-[0_22px_70px_rgba(0,0,0,.32)]">
+              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${project.tone} via-transparent to-transparent opacity-90 transition group-hover:opacity-100`} />
+              <div className="relative flex items-start justify-between gap-4">
+                <div className="flex min-w-0 gap-4">
+                  <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-black shadow-[0_14px_34px_rgba(255,138,0,.16)]">
+                    <Clapperboard size={24} strokeWidth={2.7} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-white/[.07] px-2 py-1 text-[10px] font-black text-white/70">{project.type}</span>
+                      <span className="rounded-full bg-mvnt-orange/12 px-2 py-1 text-[10px] font-black text-mvnt-yellow">{project.status}</span>
+                    </div>
+                    <h2 className="mt-3 truncate text-2xl font-black tracking-[-0.05em] text-white">{project.name}</h2>
+                    <p className="mt-2 text-xs font-bold text-mvnt-muted">{project.source} · {project.dances} dance drafts · {project.updated} 업데이트</p>
+                  </div>
+                </div>
+                <span className="shrink-0 text-xs font-black text-white/32">#{String(index + 1).padStart(2, '0')}</span>
+              </div>
+              <div className="relative mt-6 grid grid-cols-4 gap-2">
+                {Array.from({ length: 4 }).map((_, frameIndex) => (
+                  <span key={frameIndex} className="aspect-[4/5] rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_50%_35%,rgba(255,138,0,.32),transparent_38%),linear-gradient(160deg,#1b1b1b,#080808)]" style={{ filter: `hue-rotate(${(index * 34 + frameIndex * 18)}deg)` }} />
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SearchPage() {
+  const [activeTag, setActiveTag] = useState('All');
+  const [query, setQuery] = useState('');
+  const visibleVideos = filterCommunityVideos({ activeTag, query });
+
+  return (
+    <section className="min-h-screen px-2 pb-20 pt-24">
+      <div className="mx-auto w-[min(1180px,100%)]">
+        <div className="mb-8">
+          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.045] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-mvnt-muted">
+            <Search size={14} /> Search
+          </span>
+          <h1 className="text-[clamp(38px,6vw,74px)] font-black leading-[0.95] tracking-[-0.06em] text-white">검색</h1>
+          <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-mvnt-muted sm:text-base">커뮤니티 댄스, 음악 소스, 루프 스타일을 빠르게 찾고 새 작업의 레퍼런스로 사용할 수 있습니다.</p>
+        </div>
+
+        <div className="sticky top-16 z-20 mb-6 rounded-[26px] border border-white/10 bg-neutral-950/88 p-3 shadow-[0_18px_70px_rgba(0,0,0,.34)] backdrop-blur-2xl">
+          <label className="flex min-h-12 items-center gap-3 rounded-2xl bg-white/[.055] px-4 text-mvnt-muted">
+            <Search size={19} />
+            <input
+              className="min-w-0 flex-1 bg-transparent text-base font-bold text-white outline-none placeholder:text-mvnt-muted"
+              placeholder="노래, 크리에이터, 장르 검색"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {communityTags.map((tag) => {
+              const selected = activeTag === tag;
+              return (
+                <button key={tag} type="button" onClick={() => setActiveTag(tag)} className={`min-h-9 rounded-full border px-3.5 text-xs font-black transition ${selected ? 'border-white bg-white text-black' : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:text-white'}`}>
+                  #{tag}
+                </button>
+              );
+            })}
+            <span className="ml-auto text-xs font-black text-mvnt-muted">{visibleVideos.length} results</span>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {visibleVideos.map((video, index) => <CommunityVideoCard key={`${video.src}-${index}`} video={video} index={index} />)}
+        </div>
+        {visibleVideos.length === 0 && (
+          <div className="rounded-[28px] border border-white/10 bg-white/[.035] px-6 py-14 text-center text-sm font-bold text-mvnt-muted">검색 결과가 없습니다.</div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function ExplorePage() {
   const feedRef = useRef(null);
   const [likedReels, setLikedReels] = useState({});
@@ -1259,6 +1396,81 @@ function ExplorePage() {
           </div>
         </article>
       ))}
+    </section>
+  );
+}
+
+
+function DancePage() {
+  const danceStyles = [
+    { name: 'K-pop Hook', bpm: '128 BPM', cue: '포인트 안무 중심', tone: 'from-pink-500/24' },
+    { name: 'Street Groove', bpm: '104 BPM', cue: '하체 리듬 강조', tone: 'from-mvnt-orange/24' },
+    { name: 'Meme Loop', bpm: '96 BPM', cue: '짧고 반복 가능한 루프', tone: 'from-violet-400/24' },
+    { name: 'Slow Wave', bpm: '72 BPM', cue: '상체 웨이브와 실루엣', tone: 'from-sky-300/20' }
+  ];
+
+  return (
+    <section className="min-h-screen px-2 pb-20 pt-24">
+      <div className="mx-auto w-[min(1120px,100%)]">
+        <div className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
+          <div>
+            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.045] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-mvnt-muted">
+              <Footprints size={14} /> Dance Studio
+            </span>
+            <h1 className="text-[clamp(42px,7vw,88px)] font-black leading-[0.92] tracking-[-0.065em] text-white">댄스</h1>
+            <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-mvnt-muted sm:text-base">음악에 맞는 안무 스타일, 무드, 움직임 강도를 선택해서 새로운 댄스 초안을 구성하는 전용 페이지입니다.</p>
+          </div>
+          <div className="rounded-[30px] border border-white/10 bg-neutral-950 p-4 shadow-[0_22px_70px_rgba(0,0,0,.34)]">
+            <div className="aspect-video overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_50%_30%,rgba(255,138,0,.38),transparent_34%),linear-gradient(150deg,#242424,#070707)] p-5">
+              <div className="flex h-full items-end justify-center gap-5">
+                {[0, 1, 2].map((item) => (
+                  <span key={item} className="block w-10 rounded-full bg-gradient-to-b from-white to-white/24 shadow-[0_0_38px_rgba(255,138,0,.26)]" style={{ height: `${54 + item * 22}%` }} />
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <div>
+                <strong className="block text-sm font-black text-white">Motion preview</strong>
+                <span className="text-xs font-bold text-mvnt-muted">스타일 선택 후 프리뷰가 표시됩니다.</span>
+              </div>
+              <button type="button" className="grid size-11 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-black">
+                <Play size={20} fill="currentColor" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {danceStyles.map((style, index) => (
+            <article key={style.name} className="group relative isolate min-h-[260px] overflow-hidden rounded-[30px] border border-white/10 bg-neutral-950 p-5 shadow-[0_22px_70px_rgba(0,0,0,.3)]">
+              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${style.tone} via-transparent to-transparent opacity-90 transition group-hover:opacity-100`} />
+              <div className="relative flex h-full flex-col justify-between">
+                <span className="grid size-12 place-items-center rounded-2xl bg-white/[.07] text-mvnt-orange ring-1 ring-white/10">
+                  <Footprints size={22} />
+                </span>
+                <div>
+                  <span className="text-[11px] font-black uppercase tracking-[0.16em] text-mvnt-muted">Style {String(index + 1).padStart(2, '0')}</span>
+                  <h2 className="mt-2 text-2xl font-black tracking-[-0.05em] text-white">{style.name}</h2>
+                  <p className="mt-2 text-xs font-bold leading-relaxed text-mvnt-muted">{style.cue}</p>
+                  <span className="mt-4 inline-flex rounded-full bg-white/[.07] px-3 py-1.5 text-xs font-black text-white/74">{style.bpm}</span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-6 rounded-[30px] border border-white/10 bg-white/[.035] p-5">
+          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <h2 className="text-2xl font-black tracking-[-0.05em] text-white">새 댄스 만들기</h2>
+              <p className="mt-2 text-sm font-bold text-mvnt-muted">홈에서 음악을 넣은 뒤 이 페이지에서 스타일을 고르면 안무 초안 흐름으로 이어집니다.</p>
+            </div>
+            <button type="button" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-5 text-sm font-black text-white shadow-[0_16px_38px_rgba(255,138,0,.2)]">
+              <Wand2 size={17} /> Generate dance
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
