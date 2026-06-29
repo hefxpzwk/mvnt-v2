@@ -5,6 +5,9 @@ import {
   AudioLines,
   Clapperboard,
   FileAudio,
+  Flame,
+  Heart,
+  Search,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -24,6 +27,30 @@ const modes = [
   { name: 'Audio', icon: FileAudio }
 ];
 const defaultPage = 'Generate';
+
+const communityVideos = [
+  { title: 'Kelis - Milkshake', creator: 'CorrespondingHarlequin', likes: 36, src: '/community/milkshake.mp4', tone: 'from-[#e5de1f]/40' },
+  { title: 'BLACKPINK - ‘GO’', creator: '공룡킹', likes: 33, src: '/community/blackpink-go.mp4', tone: 'from-white/30' },
+  { title: 'Omega Sapien - Krapow', creator: 'Joon', likes: 17, src: '/community/krapow.mp4', tone: 'from-mvnt-orange/35' },
+  { title: 'Golden', creator: 'Q', likes: 17, src: '/community/golden.mp4', tone: 'from-mvnt-yellow/35' },
+  { title: 'Life is Reason', creator: 'bboyxai', likes: 14, src: '/community/hail-mary.mp4', tone: 'from-sky-300/25' },
+  { title: 'Life is Reason', creator: 'kaistseiok', likes: 14, src: '/community/hail-mary-2.mp4', tone: 'from-violet-300/25' },
+  { title: 'Neon Pop Routine', creator: 'motionlab', likes: 29, src: '/community/blackpink-go.mp4', tone: 'from-mvnt-orange/35' },
+  { title: 'Studio Groove 01', creator: 'mvnt picks', likes: 25, src: '/community/milkshake.mp4', tone: 'from-mvnt-yellow/35' },
+  { title: 'Arcade Shuffle', creator: 'pixelcrew', likes: 23, src: '/community/krapow.mp4', tone: 'from-violet-300/25' },
+  { title: 'Soft Light Choreo', creator: 'momo', likes: 21, src: '/community/hail-mary.mp4', tone: 'from-sky-300/25' },
+  { title: 'Creator Loop Pack', creator: 'loophaus', likes: 19, src: '/community/golden.mp4', tone: 'from-white/30' },
+  { title: 'Night Stage Cut', creator: 'nightbus', likes: 18, src: '/community/hail-mary-2.mp4', tone: 'from-[#e5de1f]/40' },
+  { title: 'Street Pop Draft', creator: 'do edit lab', likes: 16, src: '/community/krapow.mp4', tone: 'from-mvnt-orange/35' },
+  { title: 'Festival Jump', creator: 'studio momo', likes: 15, src: '/community/blackpink-go.mp4', tone: 'from-mvnt-yellow/35' },
+  { title: 'Chrome Dancer', creator: 'chromeclub', likes: 13, src: '/community/milkshake.mp4', tone: 'from-sky-300/25' },
+  { title: 'Ballad Silhouette', creator: 'slowmotion', likes: 12, src: '/community/hail-mary.mp4', tone: 'from-violet-300/25' },
+  { title: 'Meme Dance Take', creator: 'memehaus', likes: 11, src: '/community/golden.mp4', tone: 'from-white/30' },
+  { title: 'K-pop Hook Test', creator: 'hookstudio', likes: 10, src: '/community/hail-mary-2.mp4', tone: 'from-[#e5de1f]/40' }
+];
+
+const communityTags = ['All', 'Trending', 'K-pop', 'Street', 'Loop', 'Ballad'];
+
 const audioExtensions = /\.(mp3|wav|m4a|aac|flac|ogg|opus|aiff?|wma)$/i;
 
 function readPageFromHash() {
@@ -198,14 +225,14 @@ function Sidebar({ open, textVisible, targetOpen, activePage, onNavigate, onTogg
       <div className="-mx-4 mt-3 border-t border-white/10 bg-black/20">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <button type="button" className="group/user grid min-h-[68px] w-full grid-cols-[40px_1fr_auto] items-center gap-2 px-4 py-2.5 text-left text-mvnt-text transition-colors hover:bg-white/[.07]">
+            <button type="button" className="group/user grid min-h-[68px] w-full grid-cols-[40px_1fr_auto] items-center gap-2 px-4 py-2.5 text-left text-mvnt-text outline-none transition-colors hover:bg-white/[.07] focus:outline-none focus-visible:bg-white/[.07]">
               <span className="grid size-9 place-items-center justify-self-center rounded-xl bg-gradient-to-r from-mvnt-orange to-mvnt-yellow font-black text-sm text-black">J</span>
               <span className={`min-w-0 overflow-hidden transition-opacity duration-150 ${textVisible ? 'opacity-100' : 'opacity-0'}`} aria-hidden={!textVisible}><strong className="block truncate text-[13px] font-black">Jiwon Kim</strong><small className="block truncate text-[11px] font-bold text-mvnt-muted">jiwon@mvnt.studio</small></span>
               <Settings size={15} className={`transition-opacity duration-150 ${textVisible ? 'opacity-100' : 'opacity-0'} text-white/28 group-hover/user:text-white/60`} aria-hidden={!textVisible} />
             </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content side="top" align="start" sideOffset={10} className="z-50 w-[184px] rounded-xl border border-white/10 bg-neutral-950 p-1.5 text-mvnt-text shadow-2xl">
+            <DropdownMenu.Content side="top" align="center" sideOffset={10} className="z-50 w-[184px] rounded-xl border border-white/10 bg-neutral-950 p-1.5 text-mvnt-text shadow-2xl">
               <DropdownItem icon={UserRound}>Profile</DropdownItem>
               <DropdownItem icon={Settings}>Settings</DropdownItem>
               <DropdownItem icon={LogOut}>Log out</DropdownItem>
@@ -282,9 +309,10 @@ function GeneratePage({ musicSource, onMusicSourceChange }) {
   }
 
   return (
-    <section className="grid min-h-screen place-items-center py-10">
-      <div className="w-[min(980px,100%)]">
-        <div className="mb-8 text-center">
+    <section className="min-h-screen py-10">
+      <div className="flex min-h-[calc(100vh-80px)] -translate-y-8 items-center justify-center">
+        <div className="w-[min(980px,100%)]">
+          <div className="mb-8 text-center">
           <h1
             className={`hero-gradient-text text-[clamp(42px,6.5vw,84px)] font-black leading-[1.02] tracking-[-0.025em] ${headlineHovering ? 'is-hovering' : ''}`}
             data-text="Music in, dance out."
@@ -304,29 +332,97 @@ function GeneratePage({ musicSource, onMusicSourceChange }) {
           <p className="mx-auto mt-4 max-w-2xl text-base font-semibold leading-relaxed text-mvnt-muted sm:text-lg">음악 파일을 드롭하거나 링크를 붙여넣으면, 바로 움직임 초안으로 변환할 준비를 시작합니다.</p>
         </div>
 
-        <section className="stable-composer rounded-[30px] border border-white/10 bg-neutral-950 p-2.5">
-          <div className="flex gap-1.5 overflow-auto pb-2">
-            {modes.map(({ name, icon: Icon }) => (
-              <button type="button" key={name} onClick={() => setMode(name)} className={`inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-sm font-bold ${mode === name ? 'border-mvnt-text bg-mvnt-text text-black' : 'border-white/10 bg-white/[.04] text-mvnt-muted'}`}>
-                <Icon size={16} /> {name}
+          <section className="stable-composer rounded-[30px] border border-white/10 bg-neutral-950 p-2.5">
+            <div className="flex gap-1.5 overflow-auto pb-2">
+              {modes.map(({ name, icon: Icon }) => (
+                <button type="button" key={name} onClick={() => setMode(name)} className={`inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-sm font-bold ${mode === name ? 'border-mvnt-text bg-mvnt-text text-black' : 'border-white/10 bg-white/[.04] text-mvnt-muted'}`}>
+                  <Icon size={16} /> {name}
+                </button>
+              ))}
+            </div>
+            <div className="grid min-h-16 grid-cols-[auto_1fr] items-center gap-3 rounded-[22px] border border-white/10 bg-black px-4 py-2 md:flex">
+              <Plus size={20} className="text-mvnt-muted" />
+              <input
+                className="min-w-0 flex-1 bg-transparent text-base text-mvnt-text outline-none placeholder:text-mvnt-muted"
+                placeholder="Drop music, paste a link, or upload audio"
+                value={musicValue}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  onMusicSourceChange(value ? { type: 'link', label: value } : null);
+                  if (value) setMode(inferModeFromSource(value, mode));
+                }}
+              />
+              <button type="button" onClick={generate} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow px-5 font-black text-black md:col-auto"><Wand2 size={18} /> {status}</button>
+            </div>
+          </section>
+        </div>
+      </div>
+      <CommunityExamples />
+    </section>
+  );
+}
+
+function CommunityExamples() {
+  const [activeTag, setActiveTag] = useState('All');
+  const [query, setQuery] = useState('');
+
+  return (
+    <section className="mx-auto -mt-32 w-[min(1180px,100%)] pb-20" aria-label="Community example videos">
+      <div className="mb-5">
+        <h2 className="inline-flex items-center gap-3 text-[clamp(28px,3.6vw,48px)] font-black leading-none tracking-[-0.045em] text-white"><Flame className="text-mvnt-orange" size={34} fill="currentColor" /> Trend</h2>
+        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+          <label className="flex min-h-11 w-full items-center gap-2 border-b border-white/15 text-mvnt-muted lg:w-[320px] lg:shrink-0">
+            <Search size={17} />
+            <input
+              className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-mvnt-muted"
+              placeholder="Search videos"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <div className="flex gap-2 overflow-auto pb-1 lg:pb-0" aria-label="Community video tags">
+            {communityTags.map((tag) => (
+              <button
+                type="button"
+                key={tag}
+                onClick={() => setActiveTag(tag)}
+                className={`shrink-0 min-h-11 rounded-full border px-4 py-0 text-sm font-black transition-colors ${activeTag === tag ? 'border-white bg-white text-black' : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:border-white/28 hover:text-white'}`}
+              >
+                #{tag}
               </button>
             ))}
           </div>
-          <div className="grid min-h-16 grid-cols-[auto_1fr] items-center gap-3 rounded-[22px] border border-white/10 bg-black px-4 py-2 md:flex">
-            <Plus size={20} className="text-mvnt-muted" />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-base text-mvnt-text outline-none placeholder:text-mvnt-muted"
-              placeholder="Drop music, paste a link, or upload audio"
-              value={musicValue}
-              onChange={(event) => {
-                const value = event.target.value;
-                onMusicSourceChange(value ? { type: 'link', label: value } : null);
-                if (value) setMode(inferModeFromSource(value, mode));
-              }}
-            />
-            <button type="button" onClick={generate} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow px-5 font-black text-black md:col-auto"><Wand2 size={18} /> {status}</button>
-          </div>
-        </section>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {communityVideos.map((video, index) => (
+          <article key={`${video.src}-${index}`} className="group relative isolate overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950 shadow-[0_24px_70px_rgba(0,0,0,.35)]">
+            <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
+            <video className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} autoPlay muted loop playsInline preload={index < 3 ? 'auto' : 'metadata'} />
+            <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+              <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/78 to-transparent p-4 pb-12">
+                <div className="flex items-center gap-2">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-2 ring-white/20">{video.creator.slice(0, 1).toUpperCase()}</span>
+                  <span className="min-w-0 truncate text-sm font-black text-white drop-shadow">{video.creator}</span>
+                </div>
+              </div>
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/82 to-transparent p-4 pt-20">
+                <div className="flex items-end justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-white/90 via-mvnt-yellow to-mvnt-orange text-black shadow-[0_10px_28px_rgba(0,0,0,.45)]">
+                      <span className="text-lg font-black leading-none">♪</span>
+                    </span>
+                    <div className="min-w-0">
+                      <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-white/54">Song</span>
+                      <h3 className="truncate text-base font-black tracking-[-0.03em] text-white">{video.title}</h3>
+                    </div>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/12 px-2.5 py-1.5 text-xs font-black text-white/90 backdrop-blur-md"><Heart size={12} fill="currentColor" /> {video.likes}</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
