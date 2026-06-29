@@ -1123,6 +1123,7 @@ function ReelVideo({ reel, index }) {
 function ExplorePage() {
   const feedRef = useRef(null);
   const [likedReels, setLikedReels] = useState({});
+  const [scrollBounds, setScrollBounds] = useState({ canUp: false, canDown: true });
   const reels = communityVideos.map((video, index) => ({
     ...video,
     comment: [
@@ -1134,6 +1135,27 @@ function ExplorePage() {
     sourceUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(video.title)}`
   }));
 
+  useEffect(() => {
+    const feed = feedRef.current;
+    if (!feed) return undefined;
+
+    const updateScrollBounds = () => {
+      const maxScroll = Math.max(0, feed.scrollHeight - feed.clientHeight);
+      setScrollBounds({
+        canUp: feed.scrollTop > 2,
+        canDown: feed.scrollTop < maxScroll - 2
+      });
+    };
+
+    updateScrollBounds();
+    feed.addEventListener('scroll', updateScrollBounds, { passive: true });
+    window.addEventListener('resize', updateScrollBounds);
+    return () => {
+      feed.removeEventListener('scroll', updateScrollBounds);
+      window.removeEventListener('resize', updateScrollBounds);
+    };
+  }, [reels.length]);
+
   function moveReel(direction) {
     const feed = feedRef.current;
     if (!feed) return;
@@ -1144,12 +1166,16 @@ function ExplorePage() {
     <section ref={feedRef} className="reels-feed h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth bg-black">
 
       <div className="fixed right-4 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-4 md:flex">
-        <button type="button" onClick={() => moveReel(-1)} className="grid size-14 place-items-center rounded-full bg-white/90 text-black shadow-[0_10px_30px_rgba(0,0,0,.22)] transition hover:bg-white" aria-label="Previous video">
-          <ArrowUp size={28} strokeWidth={2.8} />
-        </button>
-        <button type="button" onClick={() => moveReel(1)} className="grid size-14 place-items-center rounded-full bg-white/82 text-black shadow-[0_10px_30px_rgba(0,0,0,.22)] transition hover:bg-white" aria-label="Next video">
-          <ArrowDown size={28} strokeWidth={2.8} />
-        </button>
+        {scrollBounds.canUp && (
+          <button type="button" onClick={() => moveReel(-1)} className="grid size-12 place-items-center text-white/72 transition hover:text-white" aria-label="Previous video">
+            <ArrowUp size={32} strokeWidth={2.8} />
+          </button>
+        )}
+        {scrollBounds.canDown && (
+          <button type="button" onClick={() => moveReel(1)} className="grid size-12 place-items-center text-white/72 transition hover:text-white" aria-label="Next video">
+            <ArrowDown size={32} strokeWidth={2.8} />
+          </button>
+        )}
       </div>
       {reels.map((reel, index) => (
         <article key={`${reel.src}-${index}`} className="relative ml-[max(16px,calc(50%-460px))] mr-auto flex min-h-screen w-[min(720px,100%)] snap-start items-stretch justify-center px-4 py-0">
