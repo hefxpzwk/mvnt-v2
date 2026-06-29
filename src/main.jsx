@@ -31,7 +31,10 @@ import {
   Video,
   X,
   Wand2,
-  Zap
+  Zap,
+  Check,
+  Crown,
+  Sparkles
 } from 'lucide-react';
 import './index.css';
 
@@ -39,6 +42,7 @@ const sideNav = [
   { id: 'Generate', label: '댄스', icon: Footprints },
   { id: 'Explore', label: '탐색', icon: Compass }
 ];
+const routeIds = [...sideNav.map((item) => item.id), 'Credits'];
 const sideNavIds = sideNav.map((item) => item.id);
 const modes = [
   { name: 'YouTube', icon: Clapperboard },
@@ -270,8 +274,10 @@ function estimateTokenUse(source, mode) {
 
 function readPageFromHash() {
   if (typeof window === 'undefined') return defaultPage;
+  const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+  if (path.toLowerCase() === 'credits') return 'Credits';
   const value = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''));
-  return sideNavIds.includes(value) ? value : defaultPage;
+  return routeIds.includes(value) ? value : defaultPage;
 }
 
 function getMusicPayload(dataTransfer) {
@@ -334,10 +340,10 @@ function App() {
   }, [sidebarOpen]);
 
   function navigate(page) {
-    if (!sideNavIds.includes(page)) return;
+    if (!routeIds.includes(page)) return;
     setActivePage(page);
-    const nextHash = `#/${encodeURIComponent(page)}`;
-    if (window.location.hash !== nextHash) window.history.pushState({ page }, '', nextHash);
+    const nextUrl = page === 'Credits' ? '/credits' : `/#/${encodeURIComponent(page)}`;
+    if (`${window.location.pathname}${window.location.hash}` !== nextUrl) window.history.pushState({ page }, '', nextUrl);
   }
 
   useEffect(() => {
@@ -396,6 +402,10 @@ function App() {
     };
   }, []);
 
+  if (activePage === 'Credits') {
+    return <SubscriptionPage onClose={() => navigate(defaultPage)} />;
+  }
+
   return (
     <div className="h-screen overflow-hidden text-mvnt-text">
       <Sidebar
@@ -407,7 +417,7 @@ function App() {
         onToggle={() => setSidebarOpen((value) => !value)}
       />
       <main ref={mainRef} className={`mx-auto h-screen w-[min(1440px,calc(100vw-32px))] overflow-y-auto overscroll-contain transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
-        <TopHeader activePage={activePage} sidebarExpanded={sidebarExpanded} />
+        <TopHeader activePage={activePage} sidebarExpanded={sidebarExpanded} onNavigate={navigate} />
         {activePage === 'Explore' ? (
           <ExplorePage />
         ) : (
@@ -420,13 +430,13 @@ function App() {
 }
 
 
-function TopHeader({ activePage, sidebarExpanded }) {
+function TopHeader({ activePage, sidebarExpanded, onNavigate }) {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-10 border-b border-white/10 bg-[#070707]/86 backdrop-blur-2xl">
       <div className={`pointer-events-auto flex h-12 w-full items-center justify-end gap-4 py-0 pr-5 transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          <button type="button" className="hidden min-h-9 items-center rounded-full px-3.5 text-xs font-black transition hover:bg-white/[.04] sm:inline-flex">
+          <button type="button" onClick={() => onNavigate('Credits')} className="hidden min-h-9 items-center rounded-full px-3.5 text-xs font-black transition hover:bg-white/[.04] sm:inline-flex">
             <span className="bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-500 bg-clip-text text-transparent">
               <span className="mr-1.5 text-[15px] leading-none">◇</span>구독
             </span>
@@ -546,7 +556,7 @@ function Sidebar({ open, textVisible, targetOpen, activePage, onNavigate, onTogg
           <DropdownMenu.Trigger asChild>
             <button type="button" className="group/user flex min-h-[54px] w-full items-center gap-2 px-4 py-1.5 text-left text-mvnt-text outline-none transition-colors hover:bg-white/[.07] focus-visible:bg-white/[.07]" aria-label="Open profile menu">
               <span className="grid size-9 shrink-0 place-items-center rounded-xl">
-                <span className="grid size-7 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow font-black text-xs text-black">J</span>
+                <span className="grid size-6 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow font-black text-xs text-black">J</span>
               </span>
               {textVisible && (
                 <>
@@ -568,6 +578,7 @@ function Sidebar({ open, textVisible, targetOpen, activePage, onNavigate, onTogg
     </aside>
   );
 }
+
 
 function DropOverlay() {
   return (
@@ -766,6 +777,241 @@ function GeneratePage({ musicSource, onMusicSourceChange }) {
 }
 
 
+
+const subscriptionPlans = [
+  {
+    name: 'Free',
+    Icon: Zap,
+    annualPrice: '$0',
+    monthlyPrice: '$0',
+    period: '',
+    description: '댄서와 TikTok 크리에이터가 레퍼런스를 탐색하기 위한 무료 플랜',
+    annualHighlight: 'Dance 150s/month',
+    monthlyHighlight: 'Dance 150s/month',
+    action: '현재 플랜',
+    current: true,
+    features: ['Dance generation only', 'Browse community gallery', 'No Kling/Tripo usage']
+  },
+  {
+    name: 'Basic',
+    Icon: Sparkles,
+    annualPrice: '$9.6',
+    monthlyPrice: '$12',
+    period: 'USD /월',
+    description: '매주 AI UGC를 제작하는 크리에이터를 위한 추천 플랜',
+    annualHighlight: '18,000 credits/year · Dance 150s/month',
+    monthlyHighlight: '1,500 credits/month · Dance 150s/month',
+    action: 'Basic으로 전환하기',
+    recommended: true,
+    promo: '20% OFF',
+    features: ['Dance + Edit (Inpainting)', 'Kling/Tripo access', 'API access (basic rate limits)', 'Add-on credits']
+  },
+  {
+    name: 'Creator',
+    Icon: Crown,
+    annualPrice: '$23.2',
+    monthlyPrice: '$29',
+    period: 'USD /월',
+    description: 'Blender/Unreal 작업용 3D 프로덕션 에셋을 만드는 팀과 크리에이터용',
+    annualHighlight: '60,000 credits/year · Dance 150s/month',
+    monthlyHighlight: '5,000 credits/month · Dance 150s/month',
+    action: 'Creator로 전환하기',
+    promo: '20% OFF',
+    features: ['FBX export for Blender/Unreal workflows', 'Early access to experimental models', 'Kling/Tripo access', 'Higher API limits + Add-ons']
+  }
+];
+
+
+const creditsFaqItems = [
+  {
+    question: 'When are credits granted?',
+    answer: 'Every plan gets 150 seconds of free motion generation each month. Basic, Creator, and Studio grant paid credits on your billing date. Earned credits are tracked separately.'
+  },
+  {
+    question: 'What is the difference between credits and earned credits?',
+    answer: 'For Motion, the monthly free quota is used before any credits. Only overage uses reward points first, then monthly included credits, and add-on credits last.'
+  },
+  {
+    question: 'Do unused balances roll over?',
+    answer: 'Monthly free motion seconds reset each month and do not roll over. Subscription credits reset on your billing date. Add-on credits and reward points do not expire.'
+  },
+  {
+    question: 'Do add-ons unlock 3D Motion-gen or 2D Video-gen on Free?',
+    answer: 'No. Free users can buy add-ons, but those add-ons stay Motion-only. Basic or higher is still required for Tripo and Kling.'
+  },
+  {
+    question: 'Is the upgrade applied immediately?',
+    answer: 'Yes. Upgrades apply immediately. Downgrades or cancellations take effect at the end of the current billing period.'
+  },
+  {
+    question: 'What happens if payment fails?',
+    answer: 'Access to paid features may be limited until the payment method is updated. Check your billing details in your account settings.'
+  },
+  {
+    question: 'What are the Free plan limitations?',
+    answer: 'Free includes 150 seconds of Motion per month, a 10-item library limit, and 1 concurrent job.'
+  },
+  {
+    question: 'What happens to my balance during generation?',
+    answer: 'Dance Editing places a temporary hold on your paid wallet when you submit. On success the hold is confirmed; on failure it is released and your balance is restored. Motion, Tripo, and Kling show their cost before you generate.'
+  }
+];
+
+function SubscriptionPage({ onClose }) {
+  const [billingPeriod, setBillingPeriod] = useState('annual');
+  const isAnnual = billingPeriod === 'annual';
+
+  return (
+    <main className="subscription-page h-screen overflow-y-auto text-mvnt-text">
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed right-6 top-6 z-20 grid size-11 place-items-center rounded-[18px] bg-neutral-950/70 text-mvnt-muted shadow-[0_16px_44px_rgba(0,0,0,.32)] backdrop-blur-2xl transition hover:bg-white/[.06] hover:text-mvnt-text"
+        aria-label="요금제 페이지 닫기"
+      >
+        <X size={24} strokeWidth={2.1} />
+      </button>
+
+      <section className="relative mx-auto flex min-h-screen w-[min(980px,calc(100vw-40px))] flex-col items-center justify-center px-4 py-20">
+        <div className="mb-7 text-center">
+          <h1 className="text-[clamp(28px,3vw,42px)] font-black tracking-[-0.055em] text-mvnt-text">플랜을 선택하세요</h1>
+        </div>
+
+        <div className="mb-8 grid h-[40px] w-[min(340px,100%)] grid-cols-2 rounded-full border border-white/10 bg-white/[.055] p-1 shadow-[0_18px_60px_rgba(0,0,0,.25)] backdrop-blur-xl" role="tablist" aria-label="Billing period">
+          <button
+            type="button"
+            onClick={() => setBillingPeriod('monthly')}
+            className={`rounded-full text-xs font-black transition ${!isAnnual ? 'bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 text-white shadow-[0_12px_34px_rgba(255,138,0,.22)]' : 'text-mvnt-muted hover:text-mvnt-text'}`}
+            aria-selected={!isAnnual}
+            role="tab"
+          >
+            월간
+          </button>
+          <button
+            type="button"
+            onClick={() => setBillingPeriod('annual')}
+            className={`rounded-full text-xs font-black transition ${isAnnual ? 'bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 text-white shadow-[0_12px_34px_rgba(255,138,0,.22)]' : 'text-mvnt-muted hover:text-mvnt-text'}`}
+            aria-selected={isAnnual}
+            role="tab"
+          >
+            연간 <span className="ml-1 text-[10px] opacity-80">20% 할인</span>
+          </button>
+        </div>
+
+        <div className="grid w-full gap-5 lg:grid-cols-3">
+          {subscriptionPlans.map((plan) => (
+            <PlanCard key={plan.name} plan={plan} billingPeriod={billingPeriod} />
+          ))}
+        </div>
+
+        <CreditsFaq />
+      </section>
+    </main>
+  );
+}
+
+function CreditsFaq() {
+  return (
+    <section className="mt-24 w-full" aria-label="FAQ">
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h2 className="text-[22px] font-black tracking-[-0.04em] text-mvnt-text">FAQ</h2>
+          <p className="mt-1 text-[11px] font-bold text-mvnt-muted">공식 Credits 페이지 기준 안내입니다.</p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-3">
+        {creditsFaqItems.map((item, index) => (
+          <details key={item.question} className="group rounded-2xl border border-white/10 bg-white/[.035] px-5 py-4 open:bg-white/[.055]">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[13px] font-black leading-snug text-white/86 marker:hidden">
+              <span>{item.question}</span>
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-white/[.06] text-mvnt-muted transition group-open:rotate-45 group-open:text-mvnt-orange">
+                <Plus size={14} strokeWidth={2.6} />
+              </span>
+            </summary>
+            <p className="mt-3 border-t border-white/10 pt-3 text-[12px] font-semibold leading-relaxed text-mvnt-muted">
+              {item.answer}
+            </p>
+          </details>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PlanCard({ plan, billingPeriod }) {
+  const isAnnual = billingPeriod === 'annual';
+  const price = isAnnual ? plan.annualPrice : plan.monthlyPrice;
+  const highlight = isAnnual ? plan.annualHighlight : plan.monthlyHighlight;
+  const promo = isAnnual ? plan.promo : '';
+  const tier = plan.name.toLowerCase();
+  const isBasic = tier === 'basic';
+  const isCreator = tier === 'creator';
+  const cardClass = isCreator
+    ? 'border-mvnt-orange/45 bg-[linear-gradient(180deg,rgba(24,18,14,.96),rgba(10,10,10,.92))] shadow-[0_28px_90px_rgba(255,138,0,.15)] ring-1 ring-mvnt-orange/18'
+    : isBasic
+      ? 'border-white/14 bg-neutral-950/88 shadow-[0_22px_70px_rgba(0,0,0,.34)] ring-1 ring-white/[.03]'
+      : 'border-white/[.08] bg-neutral-950/70 shadow-[0_18px_50px_rgba(0,0,0,.24)]';
+  const checkClass = isCreator
+    ? 'bg-mvnt-orange text-black'
+    : isBasic
+      ? 'bg-mvnt-orange/14 text-mvnt-orange'
+      : 'bg-white/[.055] text-white/45';
+  const actionClass = plan.current
+    ? 'cursor-default border-white/10 bg-white/[.025] text-mvnt-muted'
+    : isCreator
+      ? 'border-transparent bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 text-white shadow-[0_14px_34px_rgba(255,138,0,.18)] hover:brightness-110'
+      : 'border-white/12 bg-white/[.035] text-mvnt-text hover:border-mvnt-orange/60 hover:bg-white/[.07]';
+
+  return (
+    <article className={`relative flex min-h-[410px] flex-col overflow-hidden rounded-[24px] border px-6 py-6 backdrop-blur-xl transition ${cardClass}`}>
+      {isBasic && <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-mvnt-orange/50 to-transparent" />}
+      {isCreator && (
+        <>
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600" />
+          <div className="pointer-events-none absolute -right-16 -top-16 size-44 rounded-full bg-mvnt-orange/12 blur-3xl" />
+        </>
+      )}
+      {plan.recommended && (
+        <span className={`absolute right-4 top-4 rounded-full px-2.5 py-1 text-[10px] font-black ${isCreator ? 'bg-white text-black' : 'bg-mvnt-orange/14 text-mvnt-yellow ring-1 ring-mvnt-orange/24'}`}>추천</span>
+      )}
+
+      <div className="relative pr-14">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-[23px] font-black leading-none tracking-[-0.04em] text-mvnt-text">{plan.name}</h2>
+          {promo && <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${isCreator ? 'bg-white/10 text-white ring-1 ring-white/12' : 'bg-mvnt-orange/10 text-mvnt-yellow ring-1 ring-mvnt-orange/24'}`}>{promo}</span>}
+        </div>
+        <p className="mt-2 text-[11px] font-bold leading-snug text-mvnt-muted">{plan.description}</p>
+      </div>
+
+      <div className="relative mt-6">
+        <div className="flex items-end gap-2">
+          <span className="self-start pt-2 text-lg font-semibold text-white/38">$</span>
+          <span className={`text-[48px] font-black leading-none tracking-[-0.06em] ${isCreator ? 'bg-gradient-to-r from-white via-mvnt-yellow to-mvnt-orange bg-clip-text text-transparent' : 'text-white'}`}>{price.replace('$', '')}</span>
+          {plan.period && <span className="pb-1.5 text-[11px] font-bold text-mvnt-muted">{plan.period}</span>}
+        </div>
+        <p className={`mt-4 rounded-xl px-3 py-2.5 text-[11px] font-black ${isCreator ? 'bg-white/[.07] text-white/82 ring-1 ring-white/10' : isBasic ? 'bg-mvnt-orange/[.055] text-white/74 ring-1 ring-mvnt-orange/12' : 'bg-white/[.025] text-white/54 ring-1 ring-white/[.06]'}`}>{highlight}</p>
+      </div>
+
+      <ul className="relative mt-6 flex flex-1 flex-col gap-2.5">
+        {plan.features.map((feature) => (
+          <li key={feature} className={`grid grid-cols-[18px_1fr] items-start gap-2.5 text-[12px] font-bold leading-snug ${isCreator ? 'text-white/82' : isBasic ? 'text-white/72' : 'text-white/52'}`}>
+            <span className={`mt-0.5 grid size-4 place-items-center rounded-full ${checkClass}`}><Check size={11} strokeWidth={3} /></span>
+            <span>{feature}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        disabled={plan.current}
+        className={`relative mt-6 min-h-[40px] rounded-full border px-4 text-xs font-black transition ${actionClass}`}
+      >
+        {plan.action}
+      </button>
+    </article>
+  );
+}
+
 function AttachmentPreview({ description, metadata, onClear }) {
   const { Icon } = description;
   const title = metadata?.title || description.title;
@@ -930,7 +1176,7 @@ function ExplorePage() {
             </div>
             <div className="hidden max-w-[180px] md:block">
               <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-white/42">Now playing</span>
-              <strong className="mt-1 block truncate text-sm font-black text-white">{reel.title}</strong>
+              <strong className="mt-1 block truncate text-xs font-black text-white">{reel.title}</strong>
               <span className="mt-0.5 block truncate text-xs font-bold text-white/58">{reel.creator}</span>
             </div>
           </div>

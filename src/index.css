@@ -170,3 +170,12 @@ button { cursor: pointer; }
 @keyframes reel-record-spin {
   to { transform: rotate(360deg); }
 }
+
+.subscription-page {
+  background:
+    radial-gradient(circle at 50% -16%, rgba(255, 138, 0, .28), transparent 34rem),
+    radial-gradient(circle at 16% 68%, rgba(236, 72, 153, .14), transparent 30rem),
+    radial-gradient(circle at 88% 72%, rgba(124, 58, 237, .16), transparent 32rem),
+    linear-gradient(180deg, #0a0a0a, #050505 42%, #050505);
+  background-attachment: fixed;
+}
