@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   AudioLines,
-  ChevronRight,
+  BadgeDollarSign,
   Clapperboard,
   Compass,
   FileAudio,
@@ -15,6 +15,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  UploadCloud,
   Settings,
   Sparkles,
   UserRound,
@@ -22,7 +23,10 @@ import {
 } from 'lucide-react';
 import './index.css';
 
-const sideNav = ['Home', 'Generate', 'Explore', 'Library', 'Projects'];
+const sideNav = [
+  { id: 'Generate', label: '댄스', sublabel: 'Create motion', icon: Wand2 }
+];
+const sideNavIds = sideNav.map((item) => item.id);
 const modes = [
   { name: 'Audio', icon: FileAudio },
   { name: 'YouTube', icon: Clapperboard },
@@ -36,15 +40,46 @@ const libraryItems = ['K-pop hook draft', 'Meme bounce pack', 'Ballad silhouette
 const projects = ['MVNT launch reel', 'Creator shorts pack', 'Dancer test room'];
 const defaultPage = 'Generate';
 
+const audioExtensions = /\.(mp3|wav|m4a|aac|flac|ogg|opus|aiff?|wma)$/i;
+
+function getMusicPayload(dataTransfer) {
+  const itemFiles = Array.from(dataTransfer?.items || [])
+    .filter((item) => item.kind === 'file')
+    .map((item) => item.getAsFile())
+    .filter(Boolean);
+  const files = [...Array.from(dataTransfer?.files || []), ...itemFiles];
+  const audioFile = files.find((file) => file.type.startsWith('audio/') || audioExtensions.test(file.name));
+  if (audioFile) {
+    return { type: 'file', label: audioFile.name, file: audioFile };
+  }
+
+  const uri = dataTransfer?.getData?.('text/uri-list')?.trim();
+  if (uri) return { type: 'link', label: uri };
+
+  const text = dataTransfer?.getData?.('text/plain')?.trim();
+  if (text) return { type: 'link', label: text };
+
+  return null;
+}
+
+function hasDroppableMusic(event) {
+  const types = Array.from(event.dataTransfer?.types || []);
+  return types.includes('Files') || types.includes('text/uri-list') || types.includes('text/plain');
+}
+
 function readPageFromHash() {
   if (typeof window === 'undefined') return defaultPage;
   const value = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''));
-  return sideNav.includes(value) ? value : defaultPage;
+  return sideNavIds.includes(value) ? value : defaultPage;
 }
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarTextVisible, setSidebarTextVisible] = useState(true);
   const [activePage, setActivePage] = useState(readPageFromHash);
+  const [musicSource, setMusicSource] = useState(null);
+  const [draggingMusic, setDraggingMusic] = useState(false);
 
   useEffect(() => {
     const syncFromHash = () => setActivePage(readPageFromHash());
@@ -56,8 +91,79 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (sidebarOpen) {
+      setSidebarExpanded(true);
+      const showText = window.setTimeout(() => setSidebarTextVisible(true), 150);
+      return () => window.clearTimeout(showText);
+    }
+
+    setSidebarTextVisible(false);
+    const collapseRail = window.setTimeout(() => setSidebarExpanded(false), 130);
+    return () => window.clearTimeout(collapseRail);
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    let dragDepth = 0;
+
+    const acceptMusic = (payload) => {
+      if (!payload) return false;
+      setMusicSource(payload);
+      navigate('Generate');
+      return true;
+    };
+
+    const handlePaste = (event) => {
+      const payload = getMusicPayload(event.clipboardData);
+      if (!payload) return;
+      event.preventDefault();
+      acceptMusic(payload);
+    };
+
+    const handleDragEnter = (event) => {
+      if (!hasDroppableMusic(event)) return;
+      event.preventDefault();
+      dragDepth += 1;
+      setDraggingMusic(true);
+    };
+
+    const handleDragOver = (event) => {
+      if (!hasDroppableMusic(event)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      setDraggingMusic(true);
+    };
+
+    const handleDragLeave = (event) => {
+      if (!hasDroppableMusic(event)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) setDraggingMusic(false);
+    };
+
+    const handleDrop = (event) => {
+      if (!hasDroppableMusic(event)) return;
+      event.preventDefault();
+      dragDepth = 0;
+      setDraggingMusic(false);
+      acceptMusic(getMusicPayload(event.dataTransfer));
+    };
+
+    window.addEventListener('paste', handlePaste);
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+      window.removeEventListener('dragenter', handleDragEnter);
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, []);
+
   function navigate(page) {
-    if (!sideNav.includes(page)) return;
+    if (!sideNavIds.includes(page)) return;
     setActivePage(page);
     const nextHash = `#/${encodeURIComponent(page)}`;
     if (window.location.hash !== nextHash) {
@@ -66,65 +172,76 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen pb-24 text-mvnt-text">
+    <div className="h-screen overflow-hidden text-mvnt-text">
       <Sidebar
-        open={sidebarOpen}
+        open={sidebarExpanded}
+        textVisible={sidebarTextVisible}
+        targetOpen={sidebarOpen}
         activePage={activePage}
         onNavigate={navigate}
         onToggle={() => setSidebarOpen((value) => !value)}
       />
 
-      <main className={`mx-auto min-h-screen w-[min(1440px,calc(100vw-32px))] transition-[padding] duration-300 ${sidebarOpen ? 'lg:pl-[252px]' : 'lg:pl-[84px]'}`}>
-        {activePage === 'Home' && <HomePage onNavigate={navigate} />}
-        {activePage === 'Generate' && <GeneratePage />}
-        {activePage === 'Explore' && <ExplorePage />}
-        {activePage === 'Library' && <LibraryPage />}
-        {activePage === 'Projects' && <ProjectsPage />}
+      <main className={`mx-auto h-screen w-[min(1440px,calc(100vw-32px))] overflow-y-auto overscroll-contain transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
+        {activePage === 'Generate' && <GeneratePage musicSource={musicSource} onMusicSourceChange={setMusicSource} />}
       </main>
 
-      <nav className="fixed bottom-4 left-1/2 z-30 flex -translate-x-1/2 gap-1.5 rounded-full border border-white/10 bg-neutral-950/85 p-2 shadow-2xl backdrop-blur-xl lg:hidden">
-        {[[Compass, 'Explore'], [Wand2, 'Generate'], [Library, 'Library'], [UserRound, 'Profile']].map(([Icon, label]) => (
-          <button type="button" key={label} onClick={() => label !== 'Profile' && navigate(label)} className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-xs font-bold sm:text-sm ${activePage === label ? 'bg-mvnt-text text-black' : 'text-mvnt-muted'}`}><Icon size={18} />{label}</button>
-        ))}
-      </nav>
+      {draggingMusic && <DropOverlay />}
     </div>
   );
 }
 
-function Sidebar({ open, activePage, onNavigate, onToggle }) {
+function Sidebar({ open, textVisible, targetOpen, activePage, onNavigate, onToggle }) {
   return (
-    <aside className={`fixed bottom-[92px] left-4 top-4 z-20 flex flex-col gap-3 rounded-[28px] border border-white/10 bg-neutral-950/80 p-3 shadow-2xl backdrop-blur-2xl transition-all duration-300 ${open ? 'w-[236px]' : 'w-[68px]'}`}>
-      <div className="flex h-11 items-center gap-2">
-        <button type="button" onClick={() => onNavigate('Generate')} className={`min-w-0 flex-1 rounded-full px-3 text-left text-xl font-black tracking-[-0.08em] transition-opacity ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>MVNT</button>
-        <button type="button" onClick={onToggle} className="grid size-10 shrink-0 place-items-center rounded-full text-mvnt-muted hover:bg-white/10 hover:text-mvnt-text" aria-label={open ? 'Collapse sidebar' : 'Expand sidebar'}>
-          {open ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+    <aside className={`fixed inset-y-0 left-0 z-20 flex flex-col border-r border-white/10 bg-[#080808]/95 px-4 py-3 text-mvnt-muted shadow-[18px_0_70px_rgba(0,0,0,.34)] overflow-hidden backdrop-blur-2xl transition-[width] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${open ? 'w-[216px]' : 'w-[72px]'}`}>
+      <div className="grid h-11 grid-cols-[40px_1fr] items-center gap-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="group/brand relative isolate grid size-10 shrink-0 place-items-center overflow-hidden rounded-[14px] bg-gradient-to-br from-[#ffbd5a] via-[#ffad3b] to-[#ff8a00] text-[27px] font-black italic leading-none tracking-[-0.06em] text-neutral-950 shadow-[0_10px_24px_rgba(255,138,0,.28)] transition-transform duration-200 hover:scale-[1.02]"
+          aria-label={targetOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          title={targetOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+        >
+          <span>m</span>
+          <span className="pointer-events-none absolute -inset-px z-10 grid place-items-center rounded-[15px] bg-neutral-950 text-mvnt-text opacity-0 ring-1 ring-white/10 transition-opacity duration-200 group-hover/brand:opacity-100">
+            {targetOpen ? <PanelLeftClose size={18} strokeWidth={2.35} /> : <PanelLeftOpen size={19} strokeWidth={2.35} />}
+          </span>
         </button>
+        <span className={`min-w-0 flex-1 overflow-hidden transition-opacity duration-150 ${textVisible ? 'opacity-100' : 'opacity-0'}`} aria-hidden={!textVisible}>
+          <strong className="block truncate text-[17px] font-black leading-[0.95] tracking-[-0.03em] text-mvnt-text">mvnt</strong>
+          <small className="mt-1 block truncate text-[8px] font-black uppercase tracking-[0.12em] text-mvnt-muted">studio</small>
+        </span>
       </div>
 
-      <nav className="grid gap-1">
-        {sideNav.map((item) => (
-          <button
-            type="button"
-            key={item}
-            title={item}
-            onClick={() => onNavigate(item)}
-            className={`flex min-h-10 items-center rounded-full px-3 text-left text-sm font-bold ${open ? 'justify-start' : 'justify-center'} ${activePage === item ? 'bg-white/10 text-mvnt-text' : 'text-mvnt-muted hover:bg-white/10 hover:text-mvnt-text'}`}
-          >
-            {open ? item : item[0]}
-          </button>
-        ))}
+      <nav className="mt-4 flex flex-1 flex-col gap-0.5" aria-label="Primary">
+        {sideNav.map(({ id, label, icon: Icon }) => {
+          const selected = activePage === id;
+          return (
+            <button
+              type="button"
+              key={id}
+              title={label}
+              onClick={() => onNavigate(id)}
+              className={`group/nav grid min-h-10 w-full grid-cols-[40px_1fr] items-center gap-2 rounded-lg px-0 text-left transition-colors duration-200 ${selected ? 'text-mvnt-text' : 'text-white/46 hover:bg-white/[.045] hover:text-mvnt-text'}`}
+            >
+              <Icon className="justify-self-center" size={21} strokeWidth={selected ? 2.75 : 2.35} />
+              <span className={`min-w-0 truncate text-[14px] font-bold tracking-normal transition-opacity duration-150 ${textVisible ? 'opacity-100' : 'opacity-0'} ${selected ? 'text-mvnt-text' : 'text-white/62 group-hover/nav:text-mvnt-text'}`} aria-hidden={!textVisible}>{label}</span>
+            </button>
+          );
+        })}
       </nav>
 
-      <div className="mt-auto">
+      <div className="-mx-4 mt-3 border-t border-white/10 bg-black/20">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <button type="button" className={`grid min-h-16 w-full items-center gap-2.5 rounded-full border border-white/10 bg-white/[.06] p-2.5 text-left ${open ? 'grid-cols-[42px_1fr]' : 'grid-cols-1 place-items-center'}`}>
-              <span className="grid size-10 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow font-black text-black">J</span>
-              {open && <span className="min-w-0"><strong className="block truncate text-sm">Jiwon Kim</strong><small className="block truncate text-xs text-mvnt-muted">jiwon@mvnt.studio</small></span>}
+            <button type="button" className="group/user grid min-h-[68px] w-full grid-cols-[40px_1fr_auto] items-center gap-2 px-4 py-2.5 text-left text-mvnt-text transition-colors hover:bg-white/[.07]">
+              <span className="grid size-9 place-items-center justify-self-center rounded-xl bg-gradient-to-r from-mvnt-orange to-mvnt-yellow font-black text-sm text-black">J</span>
+              <span className={`min-w-0 overflow-hidden transition-opacity duration-150 ${textVisible ? 'opacity-100' : 'opacity-0'}`} aria-hidden={!textVisible}><strong className="block truncate text-[13px] font-black">Jiwon Kim</strong><small className="block truncate text-[11px] font-bold text-mvnt-muted">jiwon@mvnt.studio</small></span>
+              <Settings size={15} className={`transition-[opacity] duration-150 ${textVisible ? 'opacity-100' : 'opacity-0'} text-white/28 group-hover/user:text-white/60`} aria-hidden={!textVisible} />
             </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content side="top" align="start" sideOffset={8} className="z-50 w-[220px] rounded-2xl border border-white/10 bg-neutral-950 p-2 text-mvnt-text shadow-2xl">
+            <DropdownMenu.Content side="right" align="end" sideOffset={10} className="z-50 w-[220px] rounded-2xl border border-white/10 bg-neutral-950 p-2 text-mvnt-text shadow-2xl">
               <DropdownItem icon={UserRound}>Profile</DropdownItem>
               <DropdownItem icon={Settings}>Settings</DropdownItem>
               <DropdownItem icon={LogOut}>Log out</DropdownItem>
@@ -136,9 +253,26 @@ function Sidebar({ open, activePage, onNavigate, onToggle }) {
   );
 }
 
-function GeneratePage() {
+function DropOverlay() {
+  return (
+    <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center bg-black/72 p-6 backdrop-blur-xl">
+      <div className="grid w-[min(640px,calc(100vw-48px))] place-items-center rounded-[36px] border-2 border-dashed border-mvnt-orange/80 bg-neutral-950/90 px-8 py-14 text-center shadow-[0_0_90px_rgba(255,138,0,.32)]">
+        <div className="mb-6 grid size-20 place-items-center rounded-[28px] bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-black">
+          <UploadCloud size={38} strokeWidth={2.5} />
+        </div>
+        <strong className="text-[clamp(34px,6vw,68px)] font-black leading-[1.02] tracking-[-0.02em]">Drop your music</strong>
+        <span className="mt-4 max-w-md text-sm font-bold text-mvnt-muted sm:text-base">오디오 파일이나 음악 링크를 놓으면 바로 댄스 생성 입력에 들어갑니다.</span>
+      </div>
+    </div>
+  );
+}
+
+function GeneratePage({ musicSource, onMusicSourceChange }) {
   const [mode, setMode] = useState('Audio');
   const [status, setStatus] = useState('Generate');
+  const [headlineProgress, setHeadlineProgress] = useState(0);
+  const [headlineHovering, setHeadlineHovering] = useState(false);
+  const musicValue = musicSource?.label || '';
 
   function generate(event) {
     event?.preventDefault?.();
@@ -148,9 +282,35 @@ function GeneratePage() {
     setTimeout(() => setStatus('Ready'), 1200);
   }
 
+  function updateHeadlineGradient(event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const progress = ((event.clientX - rect.left) / rect.width) * 100;
+    setHeadlineProgress(Math.max(0, Math.min(100, progress)));
+  }
+
   return (
     <section className="grid min-h-screen place-items-center py-10">
       <div className="w-[min(980px,100%)]">
+        <div className="mb-8 text-center">
+          <h1
+            className={`hero-gradient-text text-[clamp(42px,6.5vw,84px)] font-black leading-[1.02] tracking-[-0.025em] ${headlineHovering ? 'is-hovering' : ''}`}
+            data-text="Music in, dance out."
+            style={{ '--hero-gradient-stop': `${headlineProgress}%` }}
+            onMouseEnter={(event) => {
+              setHeadlineHovering(true);
+              updateHeadlineGradient(event);
+            }}
+            onMouseMove={updateHeadlineGradient}
+            onMouseLeave={() => {
+              setHeadlineHovering(false);
+              setHeadlineProgress(0);
+            }}
+          >
+            Music in, dance out.
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base font-semibold leading-relaxed text-mvnt-muted sm:text-lg">음악 파일을 드롭하거나 링크를 붙여넣으면, 바로 움직임 초안으로 변환할 준비를 시작합니다.</p>
+        </div>
+
         <section className="stable-composer rounded-[30px] border border-white/10 bg-neutral-950 p-2.5">
           <div className="flex gap-1.5 overflow-auto pb-2">
             {modes.map(({ name, icon: Icon }) => (
@@ -161,18 +321,21 @@ function GeneratePage() {
           </div>
           <div className="grid min-h-16 grid-cols-[auto_1fr] items-center gap-3 rounded-[22px] border border-white/10 bg-black px-4 py-2 md:flex">
             <Plus size={20} className="text-mvnt-muted" />
-            <input className="min-w-0 flex-1 bg-transparent text-base text-mvnt-text outline-none placeholder:text-mvnt-muted" placeholder="Upload music or paste a link" />
+            <input
+              className="min-w-0 flex-1 bg-transparent text-base text-mvnt-text outline-none placeholder:text-mvnt-muted"
+              placeholder="Drop music, paste a link, or upload audio"
+              value={musicValue}
+              onChange={(event) => onMusicSourceChange(event.target.value ? { type: 'link', label: event.target.value } : null)}
+            />
             <button type="button" onClick={generate} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow px-5 font-black text-black md:col-auto">
               <Wand2 size={18} /> {status}
             </button>
           </div>
-        </section>
-
-        <section className="mt-10 flex flex-wrap justify-center gap-2">
-          {['Super motion', 'Character', 'Canvas', 'Explore'].map((item, i) => {
-            const Icon = [Sparkles, Image, Grid3X3, Compass][i];
-            return <button type="button" key={item} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[.04] px-4 text-sm font-bold text-mvnt-muted"><Icon size={17} /> {item}</button>;
-          })}
+          {musicSource && (
+            <p className="px-3 pt-2 text-[11px] font-bold text-mvnt-muted">
+              {musicSource.type === 'file' ? 'Audio file ready' : 'Music link ready'} · {musicSource.label}
+            </p>
+          )}
         </section>
       </div>
     </section>
@@ -227,7 +390,7 @@ function PageShell({ eyebrow, title, desc, children }) {
     <section className="min-h-screen py-12 lg:py-16">
       <div className="mb-8">
         <span className="text-sm font-extrabold text-mvnt-orange">{eyebrow}</span>
-        <h1 className="mt-2 text-[clamp(42px,7vw,92px)] font-black leading-none tracking-[-0.08em]">{title}</h1>
+        <h1 className="mt-2 text-[clamp(42px,7vw,92px)] font-black leading-[1.02] tracking-[-0.025em]">{title}</h1>
         <p className="mt-4 max-w-2xl text-mvnt-muted">{desc}</p>
       </div>
       {children}
@@ -246,7 +409,7 @@ function PresetGrid() {
 function ListCard({ icon: Icon, title, meta }) {
   return (
     <article className="rounded-[24px] border border-white/10 bg-white/[.04] p-5">
-      <div className="mb-8 grid size-11 place-items-center rounded-2xl bg-white/10 text-mvnt-orange"><Icon size={20} /></div>
+      <div className="mb-8 grid size-9 place-items-center rounded-2xl bg-white/10 text-mvnt-orange"><Icon size={20} /></div>
       <strong className="block text-xl">{title}</strong>
       <span className="mt-2 block text-sm text-mvnt-muted">{meta}</span>
     </article>

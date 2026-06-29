@@ -9,6 +9,10 @@
 }
 
 * { box-sizing: border-box; }
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
 body {
   margin: 0;
   min-width: 320px;
@@ -84,6 +88,56 @@ button { cursor: pointer; }
   font-size: 12px;
   font-weight: 950;
   letter-spacing: -.03em;
+}
+
+.hero-gradient-text {
+  --hero-gradient-stop: 0%;
+  position: relative;
+  display: inline-block;
+  color: rgba(246, 243, 238, .74);
+}
+
+.hero-gradient-text::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  color: transparent;
+  background:
+    linear-gradient(
+      110deg,
+      var(--color-mvnt-orange) 0%,
+      var(--color-mvnt-yellow) 18%,
+      #fff2b8 34%,
+      var(--color-mvnt-orange) 52%,
+      #ff5c1a 68%,
+      var(--color-mvnt-yellow) 84%,
+      var(--color-mvnt-orange) 100%
+    );
+  background-size: 260% 100%;
+  background-position: 0% 50%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: hero-gradient-sweep 4.8s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.hero-gradient-text.is-hovering::before {
+  width: var(--hero-gradient-stop, 0%);
+  animation: hero-gradient-flow 1.45s linear infinite;
+  filter: drop-shadow(0 0 28px rgba(255, 138, 0, .16));
+}
+
+@keyframes hero-gradient-sweep {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+
+@keyframes hero-gradient-flow {
+  from { background-position: 0% 50%; }
+  to { background-position: 260% 50%; }
 }
 
 .stable-composer {
