@@ -171,8 +171,8 @@ function Sidebar({ open, textVisible, targetOpen, activePage, onNavigate, onTogg
   return (
     <aside className={`fixed inset-y-0 left-0 z-20 flex flex-col border-r border-white/10 bg-[#080808]/95 px-4 py-3 text-mvnt-muted shadow-[18px_0_70px_rgba(0,0,0,.34)] overflow-hidden backdrop-blur-2xl transition-[width] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${open ? 'w-[216px]' : 'w-[72px]'}`}>
       <div className="grid h-11 grid-cols-[40px_1fr] items-center gap-2">
-        <button type="button" onClick={onToggle} className="group/brand relative isolate grid size-10 shrink-0 place-items-center overflow-hidden rounded-[14px] bg-gradient-to-br from-[#ffbd5a] via-[#ffad3b] to-[#ff8a00] text-[27px] font-black italic leading-none tracking-[-0.06em] text-neutral-950 shadow-[0_10px_24px_rgba(255,138,0,.28)] transition-transform duration-200 hover:scale-[1.02]" aria-label={targetOpen ? 'Collapse sidebar' : 'Expand sidebar'} title={targetOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
-          <span>m</span>
+        <button type="button" onClick={onToggle} className="group/brand relative isolate grid size-10 shrink-0 place-items-center overflow-hidden rounded-[14px] text-neutral-950 transition-transform duration-200 hover:scale-[1.02]" aria-label={targetOpen ? 'Collapse sidebar' : 'Expand sidebar'} title={targetOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
+          <img src="/favicon.svg" alt="MVNT" className="size-8 object-contain" />
           <span className="pointer-events-none absolute -inset-px z-10 grid place-items-center rounded-[15px] bg-neutral-950 text-mvnt-text opacity-0 ring-1 ring-white/10 transition-opacity duration-200 group-hover/brand:opacity-100">
             {targetOpen ? <PanelLeftClose size={18} strokeWidth={2.35} /> : <PanelLeftOpen size={19} strokeWidth={2.35} />}
           </span>
