@@ -171,6 +171,74 @@ button { cursor: pointer; }
   to { transform: rotate(360deg); }
 }
 
+
+.music-identity-overlay {
+  pointer-events: none;
+}
+.music-identity-copy {
+  filter: drop-shadow(0 3px 14px rgba(0,0,0,.72));
+}
+.music-source-art {
+  --music-hue: 128;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 72% 24%, hsl(calc(var(--music-hue) + 42) 92% 58% / .4), transparent 34%),
+    linear-gradient(135deg, hsl(var(--music-hue) 76% 35%), hsl(calc(var(--music-hue) + 18) 84% 24%));
+  animation: music-card-kick 1.28s cubic-bezier(.22, 1, .36, 1) infinite;
+  transform-origin: 50% 72%;
+}
+.music-source-art::before {
+  content: '';
+  position: absolute;
+  inset: -18%;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 22% 28%, rgba(255,255,255,.18), transparent 26%),
+    repeating-radial-gradient(ellipse at 14% 50%, rgba(0,0,0,.18) 0 8px, transparent 8px 19px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.13) 0 10px, transparent 10px 24px);
+  filter: saturate(1.08);
+  animation: music-wave-drift 1.9s linear infinite;
+}
+.music-source-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(135deg, rgba(255,255,255,.16), transparent 42%, rgba(0,0,0,.16));
+  pointer-events: none;
+}
+.music-speaker-beat span {
+  animation: speaker-bar-bounce .78s cubic-bezier(.34, 1.56, .64, 1) infinite;
+  transform-origin: bottom;
+}
+.music-speaker-beat span:nth-child(2) { animation-delay: -.14s; }
+.music-speaker-beat span:nth-child(3) { animation-delay: -.27s; }
+.music-speaker-beat span:nth-child(4) { animation-delay: -.08s; }
+.music-source-note {
+  animation: music-note-pop 1.28s cubic-bezier(.22, 1, .36, 1) infinite;
+}
+@keyframes music-card-kick {
+  0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 18px 44px rgba(0,0,0,.42); }
+  18% { transform: translateY(-1px) scale(1.026); box-shadow: 0 22px 54px hsl(var(--music-hue) 86% 42% / .2), 0 18px 44px rgba(0,0,0,.42); }
+  30% { transform: translateY(0) scale(1.006); }
+  52% { transform: translateY(-1px) scale(1.014); }
+  66% { transform: translateY(0) scale(1); }
+}
+@keyframes speaker-bar-bounce {
+  0%, 100% { transform: scaleY(.58); opacity: .72; }
+  36% { transform: scaleY(1.06); opacity: 1; }
+  60% { transform: scaleY(.82); opacity: .9; }
+}
+@keyframes music-note-pop {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  22% { transform: scale(1.1) rotate(-5deg); }
+  50% { transform: scale(.98) rotate(3deg); }
+}
+@keyframes music-wave-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(24px); }
+}
+
 .subscription-page {
   background:
     radial-gradient(circle at 50% -16%, rgba(255, 138, 0, .28), transparent 34rem),

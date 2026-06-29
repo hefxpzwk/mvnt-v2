@@ -418,11 +418,13 @@ function App() {
       />
       <main ref={mainRef} className={`mx-auto h-screen w-[min(1440px,calc(100vw-32px))] overflow-y-auto overscroll-contain transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
         <TopHeader activePage={activePage} sidebarExpanded={sidebarExpanded} onNavigate={navigate} />
-        {activePage === 'Explore' ? (
-          <ExplorePage />
-        ) : (
-          <GeneratePage musicSource={musicSource} onMusicSourceChange={setMusicSource} />
-        )}
+        <div className="relative isolate z-0">
+          {activePage === 'Explore' ? (
+            <ExplorePage />
+          ) : (
+            <GeneratePage musicSource={musicSource} onMusicSourceChange={setMusicSource} />
+          )}
+        </div>
       </main>
       {draggingMusic && <DropOverlay />}
     </div>
@@ -432,7 +434,7 @@ function App() {
 
 function TopHeader({ activePage, sidebarExpanded, onNavigate }) {
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-10 border-b border-white/10 bg-[#070707]/86 backdrop-blur-2xl">
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-[#070707]/86 backdrop-blur-2xl">
       <div className={`pointer-events-auto flex h-12 w-full items-center justify-end gap-4 py-0 pr-5 transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
 
         <div className="flex shrink-0 items-center gap-1.5">
@@ -499,7 +501,7 @@ function TopHeader({ activePage, sidebarExpanded, onNavigate }) {
 
 function Sidebar({ open, textVisible, targetOpen, activePage, onNavigate, onToggle }) {
   return (
-    <aside className={`fixed inset-y-0 left-0 z-20 flex flex-col border-r border-white/10 bg-[#080808]/95 px-4 pb-3 pt-0 text-mvnt-muted shadow-[18px_0_70px_rgba(0,0,0,.34)] overflow-hidden backdrop-blur-2xl transition-[width] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${open ? 'w-[216px]' : 'w-[72px]'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/10 bg-[#080808]/95 px-4 pb-3 pt-0 text-mvnt-muted shadow-[18px_0_70px_rgba(0,0,0,.34)] overflow-hidden backdrop-blur-2xl transition-[width] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${open ? 'w-[216px]' : 'w-[72px]'}`}>
       <svg width="0" height="0" aria-hidden="true" focusable="false">
         <linearGradient id="sidebar-active-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#ff8a00" />
@@ -1120,6 +1122,43 @@ function ReelVideo({ reel, index }) {
   );
 }
 
+function MusicIdentityOverlay({ reel, index }) {
+  const cleanCreator = reel.creator.replace(/\s+/g, '');
+  const danceCount = (3.4 + index * 0.3).toFixed(1);
+  const hue = (index * 42 + 128) % 360;
+
+  return (
+    <aside
+      className="music-identity-overlay absolute left-[calc(50%+250px)] top-24 z-20 hidden w-[min(360px,calc(100vw-40px))] items-center gap-4 text-white md:flex"
+      style={{ '--music-hue': hue }}
+      aria-label={`${reel.title} sound source`}
+    >
+      <div className="music-source-art relative grid size-20 shrink-0 place-items-center overflow-hidden rounded-[18px] text-white shadow-[0_18px_44px_rgba(0,0,0,.42)] ring-1 ring-white/15">
+        <div className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1 text-[8px] font-black leading-none">
+          <span className="grid h-3 w-4 place-items-center rounded-[3px] bg-white text-[hsl(var(--music-hue)_80%_34%)]"><Play size={7} fill="currentColor" strokeWidth={3} /></span>
+          <span>YouTube</span>
+        </div>
+        <span className="absolute left-2.5 top-6 z-10 text-[9px] font-semibold text-white/78">Audio Library</span>
+        <div className="music-speaker-beat absolute bottom-3 left-3 z-10 flex h-7 items-end gap-1" aria-hidden="true">
+          <span className="h-4 w-1.5 rounded-full bg-white" />
+          <span className="h-7 w-1.5 rounded-full bg-white" />
+          <span className="h-5 w-1.5 rounded-full bg-white" />
+          <span className="h-6 w-1.5 rounded-full bg-white" />
+        </div>
+        <span className="music-source-note relative z-20 grid size-7 place-items-center rounded-full bg-white/16 text-base font-black text-white backdrop-blur-sm">♪</span>
+      </div>
+      <div className="music-identity-copy min-w-0 flex-1">
+        <span className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.22em] text-white/42">Sound Source</span>
+        <strong className="block truncate text-[clamp(22px,2.2vw,30px)] font-black leading-tight tracking-[-0.055em] text-white">{reel.title}</strong>
+        <span className="mt-2 flex min-w-0 items-center gap-2 text-[clamp(14px,1.25vw,18px)] font-extrabold leading-tight tracking-[-0.035em] text-white/72">
+          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-[10px] font-black text-black ring-1 ring-white/25">{reel.creator.slice(0, 1).toUpperCase()}</span>
+          <span className="truncate">@{cleanCreator} · {danceCount}만 dances</span>
+        </span>
+      </div>
+    </aside>
+  );
+}
+
 function ExplorePage() {
   const feedRef = useRef(null);
   const [likedReels, setLikedReels] = useState({});
@@ -1196,16 +1235,7 @@ function ExplorePage() {
             </div>
           </div>
 
-          <div className="absolute left-[calc(50%+250px)] top-20 z-20 flex items-center gap-4 rounded-[28px] border border-white/10 bg-white/[.055] p-3 pr-4 shadow-[0_18px_50px_rgba(0,0,0,.34)] backdrop-blur-xl" aria-label="Now playing">
-            <div className="reel-record grid size-28 shrink-0 place-items-center rounded-full border border-white/15 bg-[repeating-radial-gradient(circle,#111_0_6px,#1f1f1f_6px_10px)] shadow-[0_20px_50px_rgba(0,0,0,.46)]">
-              <span className="grid size-14 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-lg font-black text-black ring-8 ring-black/55">♪</span>
-            </div>
-            <div className="hidden max-w-[180px] md:block">
-              <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-white/42">Now playing</span>
-              <strong className="mt-1 block truncate text-xs font-black text-white">{reel.title}</strong>
-              <span className="mt-0.5 block truncate text-xs font-bold text-white/58">{reel.creator}</span>
-            </div>
-          </div>
+          <MusicIdentityOverlay reel={reel} index={index} />
 
           <div className="absolute bottom-8 right-[max(18px,calc(50%-300px))] z-20 flex flex-col items-center gap-3">
             <button
