@@ -155,3 +155,18 @@ button { cursor: pointer; }
     transition-duration: 0.001ms !important;
   }
 }
+
+.reels-feed {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.reels-feed::-webkit-scrollbar {
+  display: none;
+}
+
+.reel-record {
+  animation: reel-record-spin 5s linear infinite;
+}
+@keyframes reel-record-spin {
+  to { transform: rotate(360deg); }
+}
