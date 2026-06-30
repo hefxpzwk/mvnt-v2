@@ -13,11 +13,19 @@ html, body, #root {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background: #000;
 }
 body {
   margin: 0;
   min-width: 320px;
+  background:
+    radial-gradient(circle at 50% -20%, rgba(255,138,0,.28), transparent 34rem),
+    linear-gradient(180deg, #0a0a0a, #050505 42%);
+}
+.app-background-gradient {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
   background:
     radial-gradient(circle at 50% -20%, rgba(255,138,0,.28), transparent 34rem),
     linear-gradient(180deg, #0a0a0a, #050505 42%);

@@ -32,11 +32,13 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  Pause,
   Play,
   Plus,
   Settings,
   Type,
   UploadCloud,
+  Volume2,
   UserRound,
   Video,
   X,
@@ -450,7 +452,8 @@ function App() {
   const isExplorePage = activePage === 'Explore';
 
   return (
-    <div className={`h-screen overflow-hidden text-mvnt-text ${isExplorePage ? 'bg-black' : ''}`}>
+    <div className="relative isolate h-screen overflow-hidden text-mvnt-text">
+      <div className="app-background-gradient" aria-hidden="true" />
       <Sidebar
         open={sidebarExpanded}
         textVisible={sidebarTextVisible}
@@ -459,7 +462,7 @@ function App() {
         onNavigate={navigate}
         onToggle={() => setSidebarOpen((value) => !value)}
       />
-      <main ref={mainRef} className={`${isExplorePage ? 'w-full bg-black' : 'mx-auto w-[min(1440px,calc(100vw-32px))]'} h-screen overflow-y-auto overscroll-contain transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
+      <main ref={mainRef} className={`relative z-10 ${isExplorePage ? 'w-full' : 'mx-auto w-[min(1440px,calc(100vw-32px))]'} h-screen overflow-y-auto overscroll-contain transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
         <TopHeader
           activePage={activePage}
           sidebarExpanded={sidebarExpanded}
@@ -1595,7 +1598,7 @@ function ExplorePage() {
   }
 
   return (
-    <section ref={feedRef} className="reels-feed h-screen overflow-x-hidden overflow-y-auto overscroll-x-none overscroll-y-contain snap-y snap-mandatory scroll-smooth bg-black">
+    <section ref={feedRef} className="reels-feed h-screen overflow-x-hidden overflow-y-auto overscroll-x-none overscroll-y-contain snap-y snap-mandatory scroll-smooth">
 
       <div className="fixed right-4 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-4 md:flex">
         {scrollBounds.canUp && (
@@ -1739,82 +1742,289 @@ function DancePage() {
 function CommunityExamples() {
   const [activeTag, setActiveTag] = useState('All');
   const [query, setQuery] = useState('');
+  const [selectedVideo, setSelectedVideo] = useState(null);
   const visibleVideos = filterCommunityVideos({ activeTag, query });
 
   return (
-    <section className="relative z-10 mx-auto -mt-32 w-[min(1180px,100%)] pb-20" aria-label="Community example videos">
-      <div className="mb-5">
-        <h2 className="inline-flex items-center gap-3 text-[clamp(28px,3.6vw,48px)] font-black leading-none tracking-[-0.045em] text-white"><Flame className="text-mvnt-orange" size={34} fill="currentColor" /> Trend</h2>
-        <div className="relative z-20 mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-          <label className="flex min-h-11 w-full items-center gap-2 border-b border-white/15 text-mvnt-muted lg:w-[320px] lg:shrink-0">
-            <Search size={17} />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-mvnt-muted"
-              placeholder="Search videos"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+    <>
+      <section className="relative z-10 mx-auto -mt-32 w-[min(1180px,100%)] pb-20" aria-label="Community example videos">
+        <div className="mb-5">
+          <h2 className="inline-flex items-center gap-3 text-[clamp(28px,3.6vw,48px)] font-black leading-none tracking-[-0.045em] text-white"><Flame className="text-mvnt-orange" size={34} fill="currentColor" /> Trend</h2>
+          <div className="relative z-20 mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+            <label className="flex min-h-11 w-full items-center gap-2 border-b border-white/15 text-mvnt-muted lg:w-[320px] lg:shrink-0">
+              <Search size={17} />
+              <input
+                className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-mvnt-muted"
+                placeholder="Search videos"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+            <div className="relative z-30 flex items-center gap-2 overflow-hidden pb-1 lg:pb-0" aria-label="Community video tags">
+              {communityTags.map((tag) => {
+                const selected = activeTag === tag;
+                return (
+                  <button
+                    type="button"
+                    key={tag}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setActiveTag(tag);
+                    }}
+                    aria-pressed={selected}
+                    className={`shrink-0 min-h-11 rounded-full border px-4 py-0 text-sm font-black transition-all ${selected ? 'scale-[1.02] border-white bg-white text-black shadow-[0_10px_28px_rgba(255,255,255,.12)]' : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:border-white/28 hover:text-white'}`}
+                  >
+                    #{tag}
+                  </button>
+                );
+              })}
+              <span className="ml-1 shrink-0 text-xs font-black text-mvnt-muted">{visibleVideos.length} videos</span>
+            </div>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {visibleVideos.map((video, index) => (
+            <button
+              type="button"
+              key={`${video.src}-${index}`}
+              onClick={() => setSelectedVideo({ video, index })}
+              className="group relative isolate overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45"
+              aria-label={`${video.title} 상세 보기`}
+            >
+              <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
+              <video className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} autoPlay muted loop playsInline preload={index < 3 ? 'auto' : 'metadata'} />
+              <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/78 to-transparent p-4 pb-12">
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-2 ring-white/20">{video.creator.slice(0, 1).toUpperCase()}</span>
+                    <span className="min-w-0 truncate text-xs font-black text-white drop-shadow">{video.creator}</span>
+                  </div>
+                </div>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/82 to-transparent p-4 pt-20">
+                  <div className="flex items-end justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-white/90 via-mvnt-yellow to-mvnt-orange text-black shadow-[0_10px_28px_rgba(0,0,0,.45)]">
+                        <span className="text-lg font-black leading-none">♪</span>
+                      </span>
+                      <div className="min-w-0">
+                        <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-white/54">Song</span>
+                        <h3 className="truncate text-base font-black tracking-[-0.03em] text-white">{video.title}</h3>
+                      </div>
+                    </div>
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/12 px-2.5 py-1.5 text-xs font-black text-white/90 backdrop-blur-md"><Heart size={12} fill="currentColor" /> {video.likes}</span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+        {visibleVideos.length === 0 && (
+          <div className="mt-3 rounded-[28px] border border-white/10 bg-white/[.035] px-6 py-10 text-center text-sm font-bold text-mvnt-muted">
+            선택한 태그에 맞는 영상이 없습니다.
+          </div>
+        )}
+      </section>
+
+      {selectedVideo && (
+        <TrendVideoModal
+          video={selectedVideo.video}
+          index={selectedVideo.index}
+          videos={visibleVideos}
+          onSelect={(video, index) => setSelectedVideo({ video, index })}
+          onClose={() => setSelectedVideo(null)}
+        />
+      )}
+    </>
+  );
+}
+
+
+function TrendVideoModal({ video, index, videos, onSelect, onClose }) {
+  const videoRef = useRef(null);
+  const [paused, setPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(9);
+  const tags = getCommunityVideoTags(video, index).filter((tag) => tag !== 'All');
+  const displayTags = ['Full Dance', ...tags, video.title.includes('BLACKPINK') ? 'K-pop hook' : video.title.includes('Life') ? 'Slow groove' : '3D character'];
+  const motionIcons = [Footprints, UserRound, AudioLines, Sparkles];
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+      if (!videos.length) return;
+      if (event.key === 'ArrowLeft') {
+        const nextIndex = (index - 1 + videos.length) % videos.length;
+        onSelect(videos[nextIndex], nextIndex);
+      }
+      if (event.key === 'ArrowRight') {
+        const nextIndex = (index + 1) % videos.length;
+        onSelect(videos[nextIndex], nextIndex);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [index, videos, onClose, onSelect]);
+
+  useEffect(() => {
+    setPaused(false);
+    setProgress(0);
+  }, [video.src]);
+
+  function togglePlayback() {
+    const player = videoRef.current;
+    if (!player) return;
+    if (player.paused) {
+      player.play();
+      setPaused(false);
+    } else {
+      player.pause();
+      setPaused(true);
+    }
+  }
+
+  function selectNeighbor(direction) {
+    if (!videos.length) return;
+    const nextIndex = (index + direction + videos.length) % videos.length;
+    onSelect(videos[nextIndex], nextIndex);
+  }
+
+  const elapsed = Math.max(0, Math.round(progress * duration));
+  const songLabel = video.title.includes('-') ? video.title : `${video.title} (MVNT edit)`;
+  const safeDuration = Math.max(1, Math.round(duration));
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/72 p-3 text-mvnt-text backdrop-blur-2xl sm:p-6" role="dialog" aria-modal="true" aria-label={`${video.title} 상세 모달`}>
+      <button type="button" className="absolute inset-0 cursor-default" aria-label="닫기" onClick={onClose} />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(255,138,0,.26),transparent_34rem),radial-gradient(circle_at_88%_18%,rgba(124,58,237,.18),transparent_30rem)]" />
+
+      <div className="relative grid h-[min(800px,calc(100vh-32px))] w-[min(1420px,calc(100vw-32px))] grid-rows-[1fr_104px] gap-4">
+        <article className="relative grid min-h-0 overflow-hidden rounded-[34px] border border-white/10 bg-neutral-950/92 shadow-[0_34px_120px_rgba(0,0,0,.58)] ring-1 ring-white/[.035] backdrop-blur-2xl lg:grid-cols-[1.12fr_.88fr]">
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-mvnt-orange/70 to-transparent" />
+          <div className="pointer-events-none absolute -right-24 -top-24 size-64 rounded-full bg-mvnt-orange/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 size-72 rounded-full bg-violet-600/12 blur-3xl" />
+
+          <section className="relative min-h-[360px] overflow-hidden bg-[#111018] lg:min-h-0">
+            <video
+              ref={videoRef}
+              key={video.src}
+              className="size-full object-cover"
+              src={video.src}
+              autoPlay
+              muted
+              loop
+              playsInline
+              onTimeUpdate={(event) => {
+                const current = event.currentTarget.currentTime || 0;
+                const total = event.currentTarget.duration || duration;
+                setDuration(Number.isFinite(total) && total > 0 ? total : duration);
+                setProgress(total ? Math.min(1, current / total) : 0);
+              }}
+              onLoadedMetadata={(event) => {
+                const total = event.currentTarget.duration;
+                if (Number.isFinite(total) && total > 0) setDuration(total);
+              }}
             />
-          </label>
-          <div className="relative z-30 flex items-center gap-2 overflow-hidden pb-1 lg:pb-0" aria-label="Community video tags">
-            {communityTags.map((tag) => {
-              const selected = activeTag === tag;
+            <div className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${video.tone} via-transparent to-black/30 opacity-80`} />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,transparent_30%,rgba(0,0,0,.38)_82%)]" />
+
+            <div className="absolute right-5 top-5 flex rounded-full border border-white/12 bg-black/42 p-1 text-[13px] font-black text-white/54 shadow-[0_12px_34px_rgba(0,0,0,.32)] backdrop-blur-2xl">
+              <span className="rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow px-4 py-2 text-black shadow-[0_8px_24px_rgba(255,138,0,.25)]">3D</span>
+              <span className="px-4 py-2">VID</span>
+            </div>
+
+            <div className="absolute inset-x-5 bottom-5 grid h-[68px] grid-cols-[52px_62px_1fr_62px_52px] items-center gap-3 rounded-full border border-white/12 bg-black/58 px-3 shadow-[0_18px_54px_rgba(0,0,0,.42)] backdrop-blur-2xl">
+              <button type="button" onClick={togglePlayback} className="grid size-12 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-black shadow-[0_12px_30px_rgba(255,138,0,.28)]" aria-label={paused ? '재생' : '일시정지'}>
+                {paused ? <Play size={22} fill="currentColor" /> : <Pause size={22} fill="currentColor" />}
+              </button>
+              <span className="font-mono text-sm font-black text-white/48">0:{String(elapsed).padStart(2, '0')}</span>
+              <div className="relative h-2 rounded-full bg-white/16">
+                <div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow" style={{ width: `${Math.max(4, progress * 100)}%` }} />
+                <span className="absolute top-1/2 size-5 -translate-y-1/2 rounded-full bg-mvnt-yellow shadow-[0_2px_14px_rgba(255,209,90,.5)]" style={{ left: `calc(${Math.max(4, progress * 100)}% - 10px)` }} />
+              </div>
+              <span className="font-mono text-sm font-black text-white/48">0:{String(safeDuration).padStart(2, '0')}</span>
+              <button type="button" className="grid size-12 place-items-center rounded-full border border-white/10 bg-white/[.055] text-white/58" aria-label="음량">
+                <Volume2 size={20} />
+              </button>
+            </div>
+          </section>
+
+          <section className="relative flex min-h-0 flex-col px-7 py-7 sm:px-10 lg:px-12">
+            <button type="button" onClick={onClose} className="absolute right-6 top-6 grid size-11 place-items-center rounded-full border border-white/10 bg-white/[.035] text-white/64 shadow-[0_12px_34px_rgba(0,0,0,.28)] transition hover:bg-white/[.08] hover:text-white" aria-label="닫기">
+              <X size={24} strokeWidth={2.3} />
+            </button>
+
+            <div className="flex h-14 items-start gap-5 pr-14 text-white/24">
+              {motionIcons.map((Icon, iconIndex) => (
+                <Icon key={iconIndex} size={34} strokeWidth={3} className="transition first:text-mvnt-orange/70" />
+              ))}
+            </div>
+
+            <div className="my-auto max-w-[610px] py-8">
+              <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-mvnt-orange/20 bg-mvnt-orange/[.075] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-mvnt-yellow">
+                <Flame size={13} fill="currentColor" /> Trending dance
+              </span>
+              <h3 className="text-[clamp(38px,4.2vw,62px)] font-black leading-[.96] tracking-[-0.06em] text-white">{video.title}</h3>
+              <p className="mt-6 flex items-center gap-3 text-[clamp(15px,1.35vw,20px)] font-black text-mvnt-muted">
+                <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-white via-mvnt-yellow to-mvnt-orange text-black shadow-[0_10px_26px_rgba(0,0,0,.32)]">♪</span>
+                <span className="min-w-0 truncate">{songLabel}</span>
+              </p>
+
+              <div className="mt-8 flex max-w-full gap-2.5 overflow-hidden">
+                {displayTags.map((tag) => (
+                  <span key={tag} className="shrink-0 rounded-full border border-white/10 bg-white/[.055] px-4 py-2.5 text-sm font-black text-mvnt-yellow/90"># {tag}</span>
+                ))}
+              </div>
+
+              <div className="mt-4 grid max-w-[620px] grid-cols-3 overflow-hidden rounded-[24px] border border-white/10 bg-white/[.045] text-mvnt-yellow shadow-[inset_0_1px_0_rgba(255,255,255,.06)]">
+                {['Motion', 'Music', '3D Character'].map((item, itemIndex) => (
+                  <div key={item} className={`flex min-h-[62px] items-center justify-center gap-2 text-[13px] font-black sm:text-sm ${itemIndex ? 'border-l border-white/10' : ''}`}>
+                    <span className="size-3 rounded-full border-[3px] border-mvnt-orange bg-transparent" /> {item}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-8 grid grid-cols-[auto_1fr_auto] items-center gap-3">
+                <button type="button" className="inline-flex min-h-13 items-center gap-3 rounded-full border border-white/10 bg-white/[.035] px-5 text-base font-black text-white/72 transition hover:bg-white/[.07] hover:text-white">
+                  <Heart size={24} /> {video.likes}
+                </button>
+                <button type="button" className="inline-flex min-h-13 items-center justify-center gap-4 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-6 text-[clamp(16px,1.55vw,22px)] font-black text-white shadow-[0_18px_48px_rgba(255,138,0,.22)] transition hover:brightness-110">
+                  Open in Studio <ArrowUp className="rotate-90" size={25} />
+                </button>
+                <button type="button" className="grid size-13 place-items-center rounded-full border border-white/10 bg-white/[.035] text-white/68 transition hover:bg-white/[.07] hover:text-white" aria-label="공유">
+                  <Share2 size={24} />
+                </button>
+              </div>
+            </div>
+
+            <footer className="grid gap-2 border-t border-white/10 pt-5 text-sm font-bold text-mvnt-muted sm:grid-cols-[1fr_auto] sm:items-end">
+              <div>
+                <p>Apr {20 + (index % 9)}, 2026</p>
+                <p className="mt-2">Created by <span className="text-emerald-400">●</span> <span className="text-white/74">{video.creator}</span> — {9 + (index % 5)} dances</p>
+              </div>
+              <button type="button" className="inline-flex items-center gap-1 justify-self-start font-black text-white/48 transition hover:text-white sm:justify-self-end">AI summary <ChevronDown size={16} /></button>
+            </footer>
+          </section>
+        </article>
+
+        <nav className="relative flex min-h-0 items-center gap-3 overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950/82 px-3 shadow-[0_22px_70px_rgba(0,0,0,.42)] ring-1 ring-white/[.035] backdrop-blur-2xl" aria-label="Trend carousel">
+          <button type="button" onClick={() => selectNeighbor(-1)} className="grid size-12 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[.035] text-white/60 transition hover:bg-white/[.08] hover:text-white" aria-label="이전 영상"><ChevronLeft size={25} /></button>
+          <div className="flex min-w-0 flex-1 gap-3 overflow-hidden py-3">
+            {videos.slice(0, 10).map((item, itemIndex) => {
+              const selected = item.src === video.src && item.title === video.title;
               return (
-                <button
-                  type="button"
-                  key={tag}
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    setActiveTag(tag);
-                  }}
-                  aria-pressed={selected}
-                  className={`shrink-0 min-h-11 rounded-full border px-4 py-0 text-sm font-black transition-all ${selected ? 'scale-[1.02] border-white bg-white text-black shadow-[0_10px_28px_rgba(255,255,255,.12)]' : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:border-white/28 hover:text-white'}`}
-                >
-                  #{tag}
+                <button key={`${item.src}-modal-${itemIndex}`} type="button" onClick={() => onSelect(item, itemIndex)} className={`relative h-[76px] w-[104px] shrink-0 overflow-hidden rounded-[18px] border-2 bg-neutral-900 transition ${selected ? 'border-mvnt-orange shadow-[0_0_0_2px_rgba(255,138,0,.18),0_12px_30px_rgba(255,138,0,.12)]' : 'border-white/8 opacity-62 hover:border-white/18 hover:opacity-100'}`} aria-label={`${item.title} 보기`}>
+                  <video className="size-full object-cover" src={item.src} muted playsInline preload="metadata" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                 </button>
               );
             })}
-            <span className="ml-1 shrink-0 text-xs font-black text-mvnt-muted">{visibleVideos.length} videos</span>
           </div>
-        </div>
+          <button type="button" onClick={() => selectNeighbor(1)} className="grid size-12 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[.035] text-white/60 transition hover:bg-white/[.08] hover:text-white" aria-label="다음 영상"><ChevronRight size={25} /></button>
+        </nav>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {visibleVideos.map((video, index) => (
-          <article key={`${video.src}-${index}`} className="group relative isolate overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950 shadow-[0_24px_70px_rgba(0,0,0,.35)]">
-            <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
-            <video className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} autoPlay muted loop playsInline preload={index < 3 ? 'auto' : 'metadata'} />
-            <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-              <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/78 to-transparent p-4 pb-12">
-                <div className="flex items-center gap-2">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-2 ring-white/20">{video.creator.slice(0, 1).toUpperCase()}</span>
-                  <span className="min-w-0 truncate text-xs font-black text-white drop-shadow">{video.creator}</span>
-                </div>
-              </div>
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/82 to-transparent p-4 pt-20">
-                <div className="flex items-end justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-white/90 via-mvnt-yellow to-mvnt-orange text-black shadow-[0_10px_28px_rgba(0,0,0,.45)]">
-                      <span className="text-lg font-black leading-none">♪</span>
-                    </span>
-                    <div className="min-w-0">
-                      <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-white/54">Song</span>
-                      <h3 className="truncate text-base font-black tracking-[-0.03em] text-white">{video.title}</h3>
-                    </div>
-                  </div>
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/12 px-2.5 py-1.5 text-xs font-black text-white/90 backdrop-blur-md"><Heart size={12} fill="currentColor" /> {video.likes}</span>
-                </div>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-      {visibleVideos.length === 0 && (
-        <div className="mt-3 rounded-[28px] border border-white/10 bg-white/[.035] px-6 py-10 text-center text-sm font-bold text-mvnt-muted">
-          선택한 태그에 맞는 영상이 없습니다.
-        </div>
-      )}
-    </section>
+    </div>
   );
 }
 
