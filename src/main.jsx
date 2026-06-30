@@ -817,7 +817,7 @@ function PlanCard({ plan, billingPeriod }) {
       : 'border-white/12 bg-white/[.035] text-mvnt-text hover:border-mvnt-orange/60 hover:bg-white/[.07]';
 
   return (
-    <article className={`relative flex min-h-[410px] flex-col overflow-hidden rounded-[24px] border px-4 py-4 backdrop-blur-xl transition ${cardClass}`}>
+    <article className={`relative flex min-h-[410px] flex-col overflow-hidden rounded-[22px] border px-4 py-4 backdrop-blur-xl transition ${cardClass}`}>
       {isBasic && <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-mvnt-orange/50 to-transparent" />}
       {isCreator && (
         <>
@@ -1680,10 +1680,17 @@ function CommunityExamples({ sidebarExpanded }) {
 
 function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpanded }) {
   const videoRef = useRef(null);
+  const commentCardRef = useRef(null);
+  const commentButtonRef = useRef(null);
+  const commentDragRef = useRef(null);
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(true);
   const [liked, setLiked] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentPosition, setCommentPosition] = useState(() => ({
+    x: typeof window === 'undefined' ? 520 : Math.max(24, window.innerWidth - 960),
+    y: 110
+  }));
   const [commentDraft, setCommentDraft] = useState('');
   const [comments, setComments] = useState([]);
   const [progress, setProgress] = useState(0);
@@ -1764,6 +1771,14 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
     }
   }
 
+  function seekVideo(event) {
+    const player = videoRef.current;
+    const nextProgress = Number(event.currentTarget.value) / 1000;
+    setProgress(nextProgress);
+    if (!player || !Number.isFinite(player.duration) || player.duration <= 0) return;
+    player.currentTime = nextProgress * player.duration;
+  }
+
   async function shareVideo() {
     const sharePayload = {
       title: video.title,
@@ -1785,6 +1800,55 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
     setCommentDraft('');
   }
 
+  function toggleComments() {
+    setCommentsOpen((isOpen) => {
+      if (isOpen) return false;
+      const rect = commentButtonRef.current?.getBoundingClientRect();
+      const cardWidth = 380;
+      const cardHeight = 420;
+      const margin = 16;
+      if (rect && typeof window !== 'undefined') {
+        const maxX = Math.max(margin, window.innerWidth - cardWidth - margin);
+        const maxY = Math.max(margin, window.innerHeight - cardHeight - margin);
+        const preferredY = rect.top - cardHeight - 12;
+        setCommentPosition({
+          x: Math.min(maxX, Math.max(margin, rect.right - cardWidth)),
+          y: Math.min(maxY, Math.max(margin, preferredY >= margin ? preferredY : rect.bottom + 12))
+        });
+      }
+      return true;
+    });
+  }
+
+  function startCommentDrag(event) {
+    if (event.button !== 0) return;
+    const rect = commentCardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    commentDragRef.current = {
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function moveCommentDrag(event) {
+    if (!commentDragRef.current) return;
+    const card = commentCardRef.current;
+    const width = card?.offsetWidth || 560;
+    const height = card?.offsetHeight || 460;
+    const maxX = Math.max(16, window.innerWidth - width - 16);
+    const maxY = Math.max(16, window.innerHeight - height - 16);
+    setCommentPosition({
+      x: Math.min(maxX, Math.max(16, event.clientX - commentDragRef.current.offsetX)),
+      y: Math.min(maxY, Math.max(16, event.clientY - commentDragRef.current.offsetY))
+    });
+  }
+
+  function stopCommentDrag(event) {
+    commentDragRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  }
+
   return createPortal(
     <div className="fixed inset-0 z-[999] text-mvnt-text" role="dialog" aria-modal="true" aria-label={`${video.title} 상세 모달`}>
       <button
@@ -1801,6 +1865,77 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
         <span className="px-3 py-1.5">VID</span>
       </div>
 
+      {commentsOpen && (
+        <section
+          ref={commentCardRef}
+          className="fixed z-[1001] flex h-[min(420px,calc(100vh-32px))] w-[min(380px,calc(100vw-32px))] flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#111]/95 shadow-[0_18px_60px_rgba(0,0,0,.52)] backdrop-blur-xl"
+          style={{ left: `${commentPosition.x}px`, top: `${commentPosition.y}px` }}
+          role="dialog"
+          aria-label="댓글"
+        >
+          <div
+            className="flex cursor-move touch-none select-none items-center justify-between border-b border-white/10 px-4 py-3"
+            onPointerDown={startCommentDrag}
+            onPointerMove={moveCommentDrag}
+            onPointerUp={stopCommentDrag}
+            onPointerCancel={stopCommentDrag}
+          >
+            <h3 className="text-sm font-black tracking-[-0.02em] text-white">
+              댓글 <span className="ml-1 text-white/38">{comments.length}</span>
+            </h3>
+            <button
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                setCommentsOpen(false);
+              }}
+              className="grid size-7 place-items-center rounded-full border border-white/8 bg-white/[.035] text-white/50 transition hover:bg-white/10 hover:text-white"
+              aria-label="댓글 닫기"
+            >
+              <X size={15} strokeWidth={2.4} />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="space-y-3.5">
+              {comments.map((comment, commentIndex) => (
+                <article key={`${comment.author}-${comment.text}-${commentIndex}`} className="flex gap-2.5">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white/8 text-[10px] font-black text-white/72 ring-1 ring-white/8">
+                    {comment.author.slice(0, 1).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[13px] leading-relaxed text-white/72">
+                      <strong className="mr-1.5 font-black text-white/90">{comment.author}</strong>
+                      {comment.text}
+                    </p>
+                    <span className="mt-1 block text-[10px] font-bold text-white/28">
+                      {commentIndex === 0 && comment.author === 'You' ? '방금' : `${commentIndex + 2}분 전`}
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={submitComment} className="flex items-center gap-2 border-t border-white/10 px-3 py-2.5">
+            <input
+              className="min-w-0 flex-1 rounded-full bg-white/[.06] px-3.5 py-2 text-[13px] font-bold text-white outline-none placeholder:text-white/32 focus:bg-white/[.085]"
+              placeholder="댓글 달기..."
+              value={commentDraft}
+              onChange={(event) => setCommentDraft(event.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={!commentDraft.trim()}
+              className="shrink-0 rounded-full px-3 py-2 text-[12px] font-black text-mvnt-yellow transition hover:bg-white/10 hover:text-white disabled:cursor-default disabled:bg-transparent disabled:text-white/22"
+            >
+              게시
+            </button>
+          </form>
+        </section>
+      )}
+
       <div className="absolute inset-0">
         <article className="relative grid size-full grid-cols-[minmax(0,1fr)_380px] overflow-hidden bg-transparent">
           <section className="relative flex min-w-0 items-center justify-center overflow-hidden p-5">
@@ -1814,6 +1949,10 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
                 muted={muted}
                 loop
                 playsInline
+                onClick={togglePlayback}
+                onPlay={() => setPaused(false)}
+                onPause={() => setPaused(true)}
+                onVolumeChange={(event) => setMuted(event.currentTarget.muted)}
                 onTimeUpdate={(event) => {
                   const current = event.currentTarget.currentTime || 0;
                   const total = event.currentTarget.duration || duration;
@@ -1837,8 +1976,17 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
               <div className="absolute inset-x-0 bottom-0 opacity-0 transition-opacity duration-150 group-hover/video:opacity-100 group-focus-within/video:opacity-100">
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/42 to-transparent" />
                 <div className="relative px-4 pb-3">
-                  <div className="relative mb-2 h-1 overflow-hidden rounded-full bg-white/18">
-                    <div className="absolute inset-y-0 left-0 rounded-full bg-white" style={{ width: `${Math.max(2, progress * 100)}%` }} />
+                  <div className="relative mb-2 h-1.5 rounded-full bg-white/18">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow" style={{ width: `${Math.max(0, progress * 100)}%` }} />
+                    <input
+                      type="range"
+                      min="0"
+                      max="1000"
+                      value={Math.round(progress * 1000)}
+                      onChange={seekVideo}
+                      className="absolute inset-0 h-1.5 w-full cursor-pointer appearance-none bg-transparent opacity-0"
+                      aria-label="영상 재생 위치"
+                    />
                   </div>
                   <div className="flex items-center justify-between gap-3 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,.75)]">
                     <div className="flex items-center gap-3">
@@ -1864,7 +2012,7 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
             </div>
           </section>
 
-          <aside className="relative flex min-h-0 flex-col overflow-y-auto overscroll-contain border-l border-white/10 bg-[#0d0e10]/86 p-5 shadow-[-28px_0_90px_rgba(0,0,0,.38)] backdrop-blur-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <aside className="relative flex min-h-0 flex-col overflow-hidden border-l border-white/10 bg-[#0d0e10]/86 p-5 shadow-[-28px_0_90px_rgba(0,0,0,.38)] backdrop-blur-2xl">
             <button type="button" onClick={onClose} className="absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-full text-white/58 transition hover:bg-white/[.06] hover:text-white" aria-label="닫기">
               <X size={22} strokeWidth={2.2} />
             </button>
@@ -1877,26 +2025,27 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
               </div>
             </header>
 
-            <section className="mt-16 px-1 py-2">
-              <div className="flex flex-col items-center text-center">
-                <div className="music-source-art relative grid aspect-square w-full max-w-[220px] place-items-center overflow-hidden rounded-[16px] text-white shadow-[0_22px_70px_rgba(0,0,0,.48)] ring-1 ring-white/12" style={{ '--music-hue': musicHue }}>
-                  <span className="absolute left-3 top-3 z-10 grid h-5 w-8 place-items-center rounded-[6px] bg-white text-[hsl(var(--music-hue)_80%_34%)] shadow-sm"><Play size={10} fill="currentColor" strokeWidth={3} /></span>
-                  <Music2 className="relative z-10 drop-shadow-[0_5px_18px_rgba(0,0,0,.55)]" size={46} strokeWidth={2.4} />
-                  <span className="absolute bottom-3 left-3 right-3 z-10 truncate text-[10px] font-black uppercase tracking-[0.18em] text-white/78">{artistName}</span>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <section className="mt-16 py-2">
+                <div className="flex flex-col items-center text-center">
+                  <div className="music-source-art relative grid aspect-square w-full max-w-[220px] place-items-center overflow-hidden rounded-[16px] text-white shadow-[0_22px_70px_rgba(0,0,0,.48)] ring-1 ring-white/12" style={{ '--music-hue': musicHue }}>
+                    <span className="absolute left-3 top-3 z-10 grid h-5 w-8 place-items-center rounded-[6px] bg-white text-[hsl(var(--music-hue)_80%_34%)] shadow-sm"><Play size={10} fill="currentColor" strokeWidth={3} /></span>
+                    <Music2 className="relative z-10 drop-shadow-[0_5px_18px_rgba(0,0,0,.55)]" size={46} strokeWidth={2.4} />
+                    <span className="absolute bottom-3 left-3 right-3 z-10 truncate text-[10px] font-black uppercase tracking-[0.18em] text-white/78">{artistName}</span>
+                  </div>
+                  <h4 className="mt-4 max-w-full truncate text-xl font-black leading-tight tracking-[-0.045em] text-white">{songTitle}</h4>
+                  <p className="mt-1 max-w-full truncate text-sm font-bold text-mvnt-muted">{artistName}</p>
                 </div>
-                <h4 className="mt-4 max-w-full truncate text-xl font-black leading-tight tracking-[-0.045em] text-white">{songTitle}</h4>
-                <p className="mt-1 max-w-full truncate text-sm font-bold text-mvnt-muted">{artistName}</p>
-              </div>
-            </section>
+              </section>
 
-            <section className="mt-6 px-1">
-              <h3 className="text-[11px] font-black uppercase tracking-[0.18em] text-white/42">Prompt</h3>
-              <p className="mt-2 text-sm font-semibold leading-relaxed text-white/72">
-                {promptDescription}
-              </p>
-            </section>
+              <section className="mt-6">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.18em] text-white/42">Prompt</h3>
+                <p className="mt-2 text-sm font-semibold leading-relaxed text-white/72">
+                  {promptDescription}
+                </p>
+              </section>
 
-            <section className="mt-6 px-1">
+              <section className="mt-6">
               <h3 className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/42">Information</h3>
               <dl className="text-sm">
                 <div className="flex items-center justify-between gap-4 py-1.5"><dt className="text-mvnt-muted">Feature</dt><dd className="font-black text-white">Motion</dd></div>
@@ -1905,12 +2054,18 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
               </dl>
             </section>
 
-            <div className="mt-auto pt-5">
-              <div className="mb-4 flex flex-wrap gap-2">
-                {displayTags.map((tag) => (
-                  <span key={tag} className="rounded-full border border-white/12 bg-black/34 px-2.5 py-1.5 text-[11px] font-black text-mvnt-yellow backdrop-blur-md"># {tag}</span>
-                ))}
-              </div>
+              <section className="mt-6">
+                <h3 className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/42">Tags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {displayTags.map((tag) => (
+                    <span key={tag} className="rounded-full border border-white/12 bg-black/34 px-2.5 py-1.5 text-[11px] font-black text-mvnt-yellow backdrop-blur-md"># {tag}</span>
+                  ))}
+                </div>
+              </section>
+
+            </div>
+
+            <div className="shrink-0 border-t border-white/10 pt-4">
               <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <button
                   type="button"
@@ -1939,8 +2094,9 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
                   <ExternalLink size={16} /> Link
                 </a>
                 <button
+                  ref={commentButtonRef}
                   type="button"
-                  onClick={() => setCommentsOpen((value) => !value)}
+                  onClick={toggleComments}
                   className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-[14px] border border-white/10 bg-white/[.045] text-xs font-black transition hover:bg-white/[.08] ${commentsOpen ? 'text-mvnt-yellow' : 'text-white/76'}`}
                   aria-expanded={commentsOpen}
                   aria-label="댓글 보기"
@@ -1948,47 +2104,6 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
                   <MessageCircle size={16} /> {comments.length}
                 </button>
               </div>
-              {commentsOpen && (
-                <section className="mb-4 rounded-[18px] border border-white/10 bg-white/[.035] p-3">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <h3 className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/42">
-                      <MessageCircle size={14} /> Comments
-                    </h3>
-                    <span className="text-[11px] font-black text-mvnt-muted">{comments.length}</span>
-                  </div>
-
-                  <form onSubmit={submitComment} className="mb-3 flex items-center gap-2 rounded-2xl border border-white/10 bg-black/24 p-2">
-                    <input
-                      className="min-w-0 flex-1 bg-transparent px-2 text-sm font-bold text-white outline-none placeholder:text-mvnt-muted"
-                      placeholder="댓글 추가..."
-                      value={commentDraft}
-                      onChange={(event) => setCommentDraft(event.target.value)}
-                    />
-                    <button
-                      type="submit"
-                      disabled={!commentDraft.trim()}
-                      className="grid size-8 shrink-0 place-items-center rounded-full bg-white text-black transition hover:bg-mvnt-yellow disabled:cursor-default disabled:bg-white/10 disabled:text-white/28"
-                      aria-label="댓글 게시"
-                    >
-                      <Send size={14} />
-                    </button>
-                  </form>
-
-                  <div className="max-h-56 space-y-3 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {comments.map((comment, commentIndex) => (
-                      <article key={`${comment.author}-${comment.text}-${commentIndex}`} className="flex gap-2.5">
-                        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-white/[.08] text-[11px] font-black text-white ring-1 ring-white/10">
-                          {comment.author.slice(0, 1).toUpperCase()}
-                        </span>
-                        <div className="min-w-0">
-                          <strong className="block text-xs font-black text-white/86">{comment.author}</strong>
-                          <p className="mt-0.5 text-xs font-semibold leading-relaxed text-white/62">{comment.text}</p>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )}
               <div className="space-y-3">
               <button type="button" className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-4 text-sm font-black text-white shadow-[0_18px_46px_rgba(255,138,0,.20)] transition hover:brightness-110">
                 <Wand2 size={17} /> Open in Studio
