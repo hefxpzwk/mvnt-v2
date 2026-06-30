@@ -10,6 +10,9 @@ import {
   House,
   Compass,
   FileAudio,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
   FileText,
   Flame,
   Footprints,
@@ -81,16 +84,16 @@ const communityTags = ['All', 'Trending', 'K-pop', 'Street', 'Loop', 'Ballad'];
 
 
 const projects = [
-  { name: 'BLACKPINK hook remix', type: 'K-pop', status: 'Ready', updated: '오늘', source: 'YouTube', dances: 4, tone: 'from-mvnt-orange/22' },
-  { name: 'Street pop draft', type: 'Street', status: 'Composing', updated: '어제', source: 'Upload', dances: 2, tone: 'from-violet-400/18' },
-  { name: 'Ballad silhouette pack', type: 'Slow', status: 'Review', updated: '3일 전', source: 'SoundCloud', dances: 6, tone: 'from-sky-300/16' },
-  { name: 'Creator intro loop', type: 'Shorts', status: 'Ready', updated: '지난주', source: 'Audio', dances: 3, tone: 'from-mvnt-yellow/18' }
+  { name: 'BLACKPINK hook remix', type: 'K-pop', status: '완성', updated: '오늘', source: 'YouTube', dances: 1, tone: 'from-mvnt-orange/22' },
+  { name: 'Street pop draft', type: 'Street', status: '생성 중', updated: '어제', source: 'Upload', dances: 1, tone: 'from-violet-400/18' },
+  { name: 'Ballad silhouette', type: 'Slow', status: '수정 필요', updated: '3일 전', source: 'SoundCloud', dances: 1, tone: 'from-sky-300/16' },
+  { name: 'Creator intro loop', type: 'Shorts', status: '완성', updated: '지난주', source: 'Audio', dances: 1, tone: 'from-mvnt-yellow/18' }
 ];
 
 const projectStats = [
-  { label: '진행 중', value: '4', detail: 'active projects' },
-  { label: '생성된 댄스', value: '15', detail: 'draft dances' },
-  { label: '이번 달 사용량', value: '82s', detail: 'of 150s free' }
+  { label: '내 댄스', value: '4', detail: 'created dances' },
+  { label: '완성됨', value: '2', detail: 'ready to export' },
+  { label: '생성 중', value: '1', detail: 'in progress' }
 ];
 
 function getCommunityVideoTags(video, index) {
@@ -1187,59 +1190,146 @@ function MusicIdentityOverlay({ reel, index }) {
 
 
 function ProjectsPage() {
+  const works = communityVideos.slice(0, 12).map((video, index) => ({
+    ...video,
+    workTitle: [
+      'BLACKPINK GO hook motion',
+      'Milkshake groove builder',
+      'Krapow street draft',
+      'Golden chorus loop',
+      'Life is Reason slow wave',
+      'Hail Mary floor sequence',
+      'Neon pop routine',
+      'Studio groove 01',
+      'Arcade shuffle test',
+      'Soft light choreo',
+      'Creator loop pack',
+      'Night stage cut'
+    ][index],
+    kind: ['생성한 춤', '가져와서 수정', '생성한 춤', '생성한 춤', '가져와서 수정', '생성한 춤', '가져와서 수정', '생성한 춤', '가져와서 수정', '생성한 춤', '가져와서 수정', '생성한 춤'][index],
+    visibility: ['비공개', '비공개', '비공개', '비공개', '공개', '비공개', '공개', '비공개', '비공개', '공개', '비공개', '공개'][index],
+    action: ['계속 제작', '수정하기', '진행 보기', '제작 시작', '수정하기', '내보내기', '수정하기', '계속 제작', '내보내기', '제작 시작', '계속 제작', '내보내기'][index],
+    source: ['YouTube', 'Audio', 'YouTube', 'SoundCloud', 'Upload', 'YouTube', 'Audio', 'Upload', 'YouTube', 'SoundCloud', 'Audio', 'YouTube'][index],
+    length: ['0:18', '0:14', '0:21', '0:09', '0:24', '0:16', '0:12', '0:20', '0:11', '0:28', '0:13', '0:19'][index],
+    updated: ['방금 전', '오늘', '오늘', '어제', '2일 전', '3일 전', '지난주', '지난주', '2주 전', '2주 전', '3주 전', '3주 전'][index],
+    style: ['K-pop Hook', 'Groove', 'Street', 'Loop', 'Slow Wave', 'Floor', 'Pop', 'Studio', 'Shuffle', 'Choreo', 'Loop', 'Stage'][index]
+  }));
+  const [activeProjectFilter, setActiveProjectFilter] = useState('전체');
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [page, setPage] = useState(1);
+  const projectFilters = ['전체', '생성한 춤', '가져와서 수정'];
+  const visibleWorks = activeProjectFilter === '전체' ? works : works.filter((work) => work.kind === activeProjectFilter);
+  const totalPages = Math.max(1, Math.ceil(visibleWorks.length / rowsPerPage));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * rowsPerPage;
+  const pageWorks = visibleWorks.slice(pageStart, pageStart + rowsPerPage);
+  const rangeStart = visibleWorks.length ? pageStart + 1 : 0;
+  const rangeEnd = Math.min(pageStart + rowsPerPage, visibleWorks.length);
+
+  function selectFilter(filter) {
+    setActiveProjectFilter(filter);
+    setPage(1);
+  }
+
+  function changeRowsPerPage(event) {
+    setRowsPerPage(Number(event.target.value));
+    setPage(1);
+  }
+
   return (
-    <section className="min-h-screen px-2 pb-20 pt-24">
-      <div className="mx-auto w-[min(1120px,100%)]">
-        <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+    <section className="min-h-screen px-2 pb-20 pt-20">
+      <div className="mx-auto w-[min(1220px,100%)]">
+        <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.045] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-mvnt-muted">
-              <FolderKanban size={14} /> Projects
-            </span>
-            <h1 className="text-[clamp(38px,6vw,74px)] font-black leading-[0.95] tracking-[-0.06em] text-white">프로젝트</h1>
-            <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-mvnt-muted sm:text-base">음악 소스, 생성된 댄스 초안, 검토 상태를 한 곳에서 관리하는 작업 공간입니다.</p>
+            <h1 className="text-[clamp(30px,4vw,46px)] font-black leading-none tracking-[-0.055em] text-white">채널 콘텐츠</h1>
+            <p className="mt-2 text-sm font-bold text-mvnt-muted">내가 제작한 댄스 작업을 한 곳에서 관리합니다.</p>
           </div>
-          <button type="button" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-5 text-sm font-black text-white shadow-[0_16px_38px_rgba(255,138,0,.2)]">
-            <Plus size={17} /> 새 프로젝트
+          <button type="button" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-black text-black transition hover:scale-[1.02]">
+            <Wand2 size={16} /> 만들기
           </button>
         </div>
 
-        <div className="mb-5 grid gap-3 md:grid-cols-3">
-          {projectStats.map((stat) => (
-            <article key={stat.label} className="rounded-[24px] border border-white/10 bg-white/[.035] p-5 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
-              <span className="text-[11px] font-black uppercase tracking-[0.16em] text-mvnt-muted">{stat.label}</span>
-              <strong className="mt-3 block text-4xl font-black tracking-[-0.06em] text-white">{stat.value}</strong>
-              <span className="mt-1 block text-xs font-bold text-mvnt-muted">{stat.detail}</span>
-            </article>
-          ))}
-        </div>
+        <div className="rounded-[18px] border border-white/10 bg-neutral-950/88 shadow-[0_24px_80px_rgba(0,0,0,.32)] backdrop-blur-xl">
+          <div className="border-b border-white/10 px-4 pt-3">
+            <div className="flex gap-7 text-sm font-black">
+              {projectFilters.map((filter) => {
+                const selected = activeProjectFilter === filter;
+                return (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => selectFilter(filter)}
+                    className={`relative min-h-11 transition ${selected ? 'text-white' : 'text-mvnt-muted hover:text-white'}`}
+                    aria-pressed={selected}
+                  >
+                    {filter}
+                    {selected && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-white" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          {projects.map((project, index) => (
-            <article key={project.name} className="group relative isolate overflow-hidden rounded-[30px] border border-white/10 bg-neutral-950 p-5 shadow-[0_22px_70px_rgba(0,0,0,.32)]">
-              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${project.tone} via-transparent to-transparent opacity-90 transition group-hover:opacity-100`} />
-              <div className="relative flex items-start justify-between gap-4">
-                <div className="flex min-w-0 gap-4">
-                  <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-black shadow-[0_14px_34px_rgba(255,138,0,.16)]">
-                    <Clapperboard size={24} strokeWidth={2.7} />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-white/[.07] px-2 py-1 text-[10px] font-black text-white/70">{project.type}</span>
-                      <span className="rounded-full bg-mvnt-orange/12 px-2 py-1 text-[10px] font-black text-mvnt-yellow">{project.status}</span>
+          <div className="flex flex-col gap-3 border-b border-white/10 p-4 lg:flex-row lg:items-center lg:justify-between">
+            <button type="button" className="inline-flex min-h-9 w-fit items-center gap-2 rounded-full border border-white/12 px-3.5 text-xs font-black text-mvnt-muted transition hover:bg-white/[.06] hover:text-white">
+              <SlidersHorizontal size={15} /> 필터
+            </button>
+            <label className="flex min-h-10 w-full items-center gap-2 rounded-md border border-white/10 bg-white/[.025] px-3 text-mvnt-muted lg:w-[360px]">
+              <Search size={16} />
+              <input className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-mvnt-muted" placeholder="콘텐츠 검색" />
+            </label>
+          </div>
+
+          <div className="hidden grid-cols-[minmax(430px,1fr)_130px_120px_100px_110px] gap-4 border-b border-white/10 px-4 py-3 text-[11px] font-black uppercase tracking-[0.12em] text-white/38 lg:grid">
+            <span>동영상</span>
+            <span>구분</span>
+            <span>공개 여부</span>
+            <span>길이</span>
+            <span>날짜</span>
+          </div>
+
+          <div className="divide-y divide-white/10">
+            {pageWorks.map((work, index) => (
+              <article key={`${work.workTitle}-${work.src}`} className="group grid gap-4 p-4 transition hover:bg-white/[.035] lg:grid-cols-[minmax(430px,1fr)_130px_120px_100px_110px] lg:items-center">
+                <div className="grid min-w-0 grid-cols-[150px_1fr] gap-4">
+                  <div className="relative isolate aspect-video overflow-hidden rounded-lg bg-black ring-1 ring-white/10">
+                    <video className="size-full object-cover" src={work.src} autoPlay muted loop playsInline preload={index < 5 ? 'auto' : 'metadata'} />
+                    <span className="absolute bottom-1.5 right-1.5 rounded bg-black/78 px-1.5 py-0.5 text-[10px] font-black text-white">{work.length}</span>
+                  </div>
+                  <div className="min-w-0 py-1">
+                    <h2 className="truncate text-sm font-black text-white">{work.workTitle}</h2>
+                    <p className="mt-1 line-clamp-2 text-xs font-bold leading-relaxed text-mvnt-muted">{work.source} 소스 · {work.style}</p>
+                    <div className="mt-2 flex gap-2 text-[11px] font-black text-white/34 opacity-0 transition group-hover:opacity-100">
+                      <button type="button" className="hover:text-white">수정</button>
+                      <span>·</span>
+                      <button type="button" className="hover:text-white">제목 수정</button>
+                      <span>·</span>
+                      <button type="button" className="hover:text-white">공개 설정</button>
                     </div>
-                    <h2 className="mt-3 truncate text-2xl font-black tracking-[-0.05em] text-white">{project.name}</h2>
-                    <p className="mt-2 text-xs font-bold text-mvnt-muted">{project.source} · {project.dances} dance drafts · {project.updated} 업데이트</p>
                   </div>
                 </div>
-                <span className="shrink-0 text-xs font-black text-white/32">#{String(index + 1).padStart(2, '0')}</span>
-              </div>
-              <div className="relative mt-6 grid grid-cols-4 gap-2">
-                {Array.from({ length: 4 }).map((_, frameIndex) => (
-                  <span key={frameIndex} className="aspect-[4/5] rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_50%_35%,rgba(255,138,0,.32),transparent_38%),linear-gradient(160deg,#1b1b1b,#080808)]" style={{ filter: `hue-rotate(${(index * 34 + frameIndex * 18)}deg)` }} />
-                ))}
-              </div>
-            </article>
-          ))}
+
+                <div className="flex items-center justify-between gap-3 lg:block"><span className="text-xs font-black text-white/38 lg:hidden">구분</span><span className="text-xs font-bold text-white/70">{work.kind}</span></div>
+                <div className="flex items-center justify-between gap-3 lg:block"><span className="text-xs font-black text-white/38 lg:hidden">공개 여부</span><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${work.visibility === '공개' ? 'bg-emerald-400/12 text-emerald-200' : 'bg-white/[.07] text-white/62'}`}>{work.visibility}</span></div>
+                <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">길이</span>{work.length}</div>
+                <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">날짜</span>{work.updated}</div>
+              </article>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-3 text-xs font-bold text-mvnt-muted sm:flex-row sm:items-center sm:justify-end">
+            <label className="flex items-center gap-2">
+              페이지당 행 수:
+              <select value={rowsPerPage} onChange={changeRowsPerPage} className="rounded-md border border-white/10 bg-neutral-950 px-2 py-1 font-black text-white outline-none">
+                {[5, 10, 25].map((count) => <option key={count} value={count}>{count}</option>)}
+              </select>
+            </label>
+            <span className="sm:ml-5">{rangeStart}-{rangeEnd} / {visibleWorks.length}</span>
+            <div className="flex items-center gap-1 sm:ml-3">
+              <button type="button" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="grid size-8 place-items-center rounded-full text-white/70 transition hover:bg-white/[.06] disabled:cursor-default disabled:text-white/20" aria-label="이전 페이지"><ChevronLeft size={18} /></button>
+              <button type="button" disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="grid size-8 place-items-center rounded-full text-white/70 transition hover:bg-white/[.06] disabled:cursor-default disabled:text-white/20" aria-label="다음 페이지"><ChevronRight size={18} /></button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
