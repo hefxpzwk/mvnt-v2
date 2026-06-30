@@ -33,15 +33,15 @@
 - Key contexts of use: desktop creative work, mobile inspiration browsing, early demo/pitch review.
 
 ## Information architecture
-- Primary navigation: Create, Explore, Studio, Credits, API.
-- Core routes/screens: single SvelteKit page with anchored sections for the current UI-only prototype.
+- Current primary navigation source of truth: `src/lib/navigation.js`. Runtime tabs are Home, Projects, Search, Explore, and Dance; Credits is a standalone route. Legacy Create and Studio hashes map to Home and Projects for compatibility.
+- Core routes/screens: React/Vite single-page app with hash-based in-app routes and `/credits` for pricing.
 - Content hierarchy:
-  1. Hero creation cockpit.
-  2. Four-step workflow explanation.
-  3. Community/template exploration.
-  4. Studio preview dashboard.
-  5. Credits/pricing.
-  6. API/integration placeholders.
+  1. Home creation cockpit.
+  2. Projects dashboard and visibility controls.
+  3. Search across community dance examples.
+  4. Explore reels feed.
+  5. Dance generator/lab placeholder.
+  6. Credits/pricing.
 
 ## Design principles
 - Principle 1: Jakob’s Law — keep recognizable patterns from popular creator products: left rail, prominent input, template grid, pricing cards, developer quickstart.
@@ -53,30 +53,30 @@
 - Typography: large compressed-feeling hero type via system sans, tight tracking for high-energy branding.
 - Spacing/layout rhythm: roomy cards, 14–18px grid gaps, large sectional breathing room.
 - Shape/radius/elevation: rounded glass panels, soft borders, deep shadows.
-- Motion: lightweight smooth scrolling and Three.js animated dancer preview; avoid blocking animation.
-- Imagery/iconography: Lucide icons for interface clarity; generated 3D dancer as live visual anchor.
+- Motion: lightweight smooth scrolling and CSS/video-driven prototype animation; avoid blocking animation.
+- Imagery/iconography: Lucide React icons for interface clarity; community video assets anchor the prototype experience.
 
 ## Components
-- Existing components to reuse: PWA manifest/favicons from sibling prototype where available.
-- New/changed components: side rail, creation card, dancer strip, ThreeScene preview, community cards, studio board, plan cards, API card.
-- Variants and states: active nav/tab/dancer, dummy login toggle, staged dummy generation status.
-- Token/component ownership: `src/app.css` owns tokens and global component styling; `src/lib/dummy.js` owns placeholder content.
+- Existing components to reuse: PWA manifest/favicons and static community media assets.
+- New/changed components: side rail, top search, creation composer, community cards, reels feed, project dashboard, plan cards, trend modal.
+- Variants and states: active nav/tag/filter, sidebar expanded/collapsed, staged dummy generation status, modal/video playback.
+- Token/component ownership: `src/index.css` owns tokens and global component styling; `src/lib/navigation.js` owns route/navigation contracts; `src/lib/dummy.js` owns legacy placeholder content derived from that navigation contract.
 
 ## Accessibility
 - Target standard: practical WCAG-aware prototype, semantic sections/buttons/labels.
 - Keyboard/focus behavior: native buttons/inputs retained; mobile nav uses buttons and close scrim.
 - Contrast/readability: dark background with high-contrast text and muted secondary copy.
 - Screen-reader semantics: labeled navigation, labeled generator input, stage preview aria label.
-- Reduced motion and sensory considerations: not yet implemented; add `prefers-reduced-motion` handling before production.
+- Reduced motion and sensory considerations: global `prefers-reduced-motion` handling exists in `src/index.css`; future production work should also pause nonessential video motion where appropriate.
 
 ## Responsive behavior
-- Supported breakpoints/devices: desktop left rail, tablet/mobile top bar with drawer.
-- Layout adaptations: hero and dashboards collapse from multi-column to single-column; grids collapse to 2-column then 1-column.
+- Supported breakpoints/devices: desktop/tablet left rail with responsive content grids.
+- Layout adaptations: hero and dashboards collapse from multi-column to single-column; grids collapse to 2-column then 1-column where implemented.
 - Touch/hover differences: touch targets remain above ~38–50px; hover effects are decorative only.
 
 ## Interaction states
-- Loading: dummy generation status cycles through analyzing/matching/rendering/done.
-- Empty: music input is prefilled with demo URL; search is placeholder-only.
+- Loading: dummy generation status cycles through Thinking/Composing/Ready with timers cleaned up on unmount/restart.
+- Empty: music input accepts pasted links, drag/drop, and uploaded files; search can create a draft from the entered query.
 - Error: not modeled because no backend is connected.
 - Success: “Draft complete” state after mock generation.
 - Disabled: not modeled; future backend wiring should add disabled and quota states.
@@ -88,11 +88,11 @@
 - Microcopy rules: clearly mark mock/demo states; do not imply real processing or saved accounts.
 
 ## Implementation constraints
-- Framework/styling system: SvelteKit + Vite, plain CSS, Lucide Svelte icons, Three.js dynamic client import.
-- Design-token constraints: CSS variables in `src/app.css`; no new design-system dependency.
-- Performance constraints: Three.js scene is small and client-only; keep assets lightweight until production.
-- Compatibility constraints: backend/auth/payment/upload are intentionally absent.
-- Test/screenshot expectations: user requested implementation only and no verification pass for this iteration.
+- Framework/styling system: React + Vite, Tailwind CSS v4 via `@tailwindcss/vite`, Radix Dropdown Menu, Lucide React icons.
+- Design-token constraints: CSS variables and Tailwind theme tokens in `src/index.css`; keep navigation and route aliases centralized in `src/lib/navigation.js`.
+- Performance constraints: static community media is prototype-only; production should lazy/play-gate non-visible videos before expanding media volume.
+- Compatibility constraints: backend/auth/payment/upload processing are intentionally absent; uploaded files stay browser-local.
+- Test/screenshot expectations: `npm test` covers route parsing regressions; `npm run build` is the current production smoke check.
 
 ## Open questions
 - [ ] Which production backend API shape will replace dummy generator state? / backend owner / impacts form data model.

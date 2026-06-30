@@ -50,6 +50,11 @@ import {
   Sparkles
 } from 'lucide-react';
 import './index.css';
+import { AutoPlayVideo } from './components/AutoPlayVideo.jsx';
+import { buildPageUrl, defaultPage, readPageFromLocation, routeIds, sideNavItems } from './lib/navigation.js';
+import { communityTags, communityVideos, filterCommunityVideos, getCommunityVideoTags } from './lib/community.js';
+import { projectFilters, projectWorks } from './lib/projects.js';
+import { describeSource, estimateTokenUse, fetchSourceMetadata, getMusicPayload, hasDroppableMusic, inferModeFromSource } from './lib/source.js';
 
 
 const browserChromeTheme = '#050505';
@@ -78,300 +83,19 @@ function setBrowserChromeTheme(color = browserChromeTheme) {
   document.body.style.backgroundColor = color;
 }
 
-const sideNav = [
-  { id: 'Home', label: '홈', icon: House },
-  { id: 'Projects', label: '프로젝트', icon: FolderKanban },
-  { id: 'Search', label: '검색', icon: Search },
-  { id: 'Explore', label: '탐색', icon: Compass },
-  { id: 'Dance', label: '댄스', icon: Footprints }
-];
-const legacyRouteAliases = { Generate: 'Home' };
-const routeIds = [...sideNav.map((item) => item.id), 'Credits'];
+const sideNavIconMap = { House, FolderKanban, Search, Compass, Footprints };
+const sideNav = sideNavItems.map((item) => ({ ...item, icon: sideNavIconMap[item.icon] }));
+const sourceIconMap = { AudioLines, Clapperboard, FileText, Image, Link, Music2, Video };
 const modes = [
   { name: 'YouTube', icon: Clapperboard },
   { name: 'SoundCloud', icon: AudioLines },
   { name: 'Audio', icon: FileAudio }
 ];
-const defaultPage = 'Home';
-
-const communityVideos = [
-  { title: 'Kelis - Milkshake', creator: 'CorrespondingHarlequin', likes: 36, src: '/community/milkshake.mp4', tone: 'from-[#e5de1f]/40' },
-  { title: 'BLACKPINK - ‘GO’', creator: '공룡킹', likes: 33, src: '/community/blackpink-go.mp4', tone: 'from-white/30' },
-  { title: 'Omega Sapien - Krapow', creator: 'Joon', likes: 17, src: '/community/krapow.mp4', tone: 'from-mvnt-orange/35' },
-  { title: 'Golden', creator: 'Q', likes: 17, src: '/community/golden.mp4', tone: 'from-mvnt-yellow/35' },
-  { title: 'Life is Reason', creator: 'bboyxai', likes: 14, src: '/community/hail-mary.mp4', tone: 'from-sky-300/25' },
-  { title: 'Life is Reason', creator: 'kaistseiok', likes: 14, src: '/community/hail-mary-2.mp4', tone: 'from-violet-300/25' },
-  { title: 'Neon Pop Routine', creator: 'motionlab', likes: 29, src: '/community/blackpink-go.mp4', tone: 'from-mvnt-orange/35' },
-  { title: 'Studio Groove 01', creator: 'mvnt picks', likes: 25, src: '/community/milkshake.mp4', tone: 'from-mvnt-yellow/35' },
-  { title: 'Arcade Shuffle', creator: 'pixelcrew', likes: 23, src: '/community/krapow.mp4', tone: 'from-violet-300/25' },
-  { title: 'Soft Light Choreo', creator: 'momo', likes: 21, src: '/community/hail-mary.mp4', tone: 'from-sky-300/25' },
-  { title: 'Creator Loop Pack', creator: 'loophaus', likes: 19, src: '/community/golden.mp4', tone: 'from-white/30' },
-  { title: 'Night Stage Cut', creator: 'nightbus', likes: 18, src: '/community/hail-mary-2.mp4', tone: 'from-[#e5de1f]/40' },
-  { title: 'Street Pop Draft', creator: 'do edit lab', likes: 16, src: '/community/krapow.mp4', tone: 'from-mvnt-orange/35' },
-  { title: 'Festival Jump', creator: 'studio momo', likes: 15, src: '/community/blackpink-go.mp4', tone: 'from-mvnt-yellow/35' },
-  { title: 'Chrome Dancer', creator: 'chromeclub', likes: 13, src: '/community/milkshake.mp4', tone: 'from-sky-300/25' },
-  { title: 'Ballad Silhouette', creator: 'slowmotion', likes: 12, src: '/community/hail-mary.mp4', tone: 'from-violet-300/25' },
-  { title: 'Meme Dance Take', creator: 'memehaus', likes: 11, src: '/community/golden.mp4', tone: 'from-white/30' },
-  { title: 'K-pop Hook Test', creator: 'hookstudio', likes: 10, src: '/community/hail-mary-2.mp4', tone: 'from-[#e5de1f]/40' }
-];
-
-const communityTags = ['All', 'Trending', 'K-pop', 'Street', 'Loop', 'Ballad'];
-
-
-const projects = [
-  { name: 'BLACKPINK hook remix', type: 'K-pop', status: '완성', updated: '오늘', source: 'YouTube', dances: 1, tone: 'from-mvnt-orange/22' },
-  { name: 'Street pop draft', type: 'Street', status: '생성 중', updated: '어제', source: 'Upload', dances: 1, tone: 'from-violet-400/18' },
-  { name: 'Ballad silhouette', type: 'Slow', status: '수정 필요', updated: '3일 전', source: 'SoundCloud', dances: 1, tone: 'from-sky-300/16' },
-  { name: 'Creator intro loop', type: 'Shorts', status: '완성', updated: '지난주', source: 'Audio', dances: 1, tone: 'from-mvnt-yellow/18' }
-];
-
-const projectStats = [
-  { label: '내 댄스', value: '4', detail: 'created dances' },
-  { label: '완성됨', value: '2', detail: 'ready to export' },
-  { label: '생성 중', value: '1', detail: 'in progress' }
-];
-
-function getCommunityVideoTags(video, index) {
-  const text = `${video.title} ${video.creator}`.toLowerCase();
-  const tags = ['All'];
-  if (index < 8 || /trend|popular|pick/i.test(text)) tags.push('Trending');
-  if (/blackpink|k-pop|kpop|hook|golden|pop/i.test(text)) tags.push('K-pop');
-  if (/street|krapow|arcade|chrome|bboy|shuffle/i.test(text)) tags.push('Street');
-  if (/loop|pack|studio|draft|test/i.test(text)) tags.push('Loop');
-  if (/ballad|slow|reason|soft|silhouette/i.test(text)) tags.push('Ballad');
-  return tags;
-}
-
-function filterCommunityVideos({ activeTag, query }) {
-  const normalizedQuery = query.trim().toLowerCase();
-  return communityVideos.filter((video, index) => {
-    const searchText = `${video.title} ${video.creator}`.toLowerCase();
-    const matchesQuery = !normalizedQuery || searchText.includes(normalizedQuery);
-    const matchesTag = getCommunityVideoTags(video, index).includes(activeTag);
-    return matchesQuery && matchesTag;
-  });
-}
-
-const audioExtensions = /\.(mp3|wav|m4a|aac|flac|ogg|opus|aiff?|wma)$/i;
-
-const videoExtensions = /\.(mp4|webm|mov|m4v|avi|mkv)$/i;
-const imageExtensions = /\.(png|jpe?g|gif|webp|avif|svg)$/i;
-
-function extractFirstUrl(text = '') {
-  return text.match(/https?:\/\/[^\s<>()"']+/i)?.[0] || '';
-}
-
-function getFileKind(file) {
-  const name = file?.name || '';
-  const type = file?.type || '';
-  if (type.startsWith('audio/') || audioExtensions.test(name)) return 'audio';
-  if (type.startsWith('video/') || videoExtensions.test(name)) return 'video';
-  if (type.startsWith('image/') || imageExtensions.test(name)) return 'image';
-  return 'document';
-}
-
-function getFileMeta(file) {
-  if (!file) return '';
-  const size = typeof file.size === 'number' ? file.size : 0;
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let value = size;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-  const prettySize = size ? `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}` : 'local file';
-  return [file.type || 'unknown type', prettySize].filter(Boolean).join(' · ');
-}
-
-function getYouTubeId(rawValue = '') {
-  const urlText = extractFirstUrl(rawValue) || rawValue;
-  try {
-    const url = new URL(urlText);
-    const host = url.hostname.replace(/^www\./, '');
-    if (host === 'youtu.be') return url.pathname.split('/').filter(Boolean)[0] || '';
-    if (host.endsWith('youtube.com')) {
-      if (url.pathname.startsWith('/shorts/')) return url.pathname.split('/').filter(Boolean)[1] || '';
-      if (url.pathname.startsWith('/embed/')) return url.pathname.split('/').filter(Boolean)[1] || '';
-      return url.searchParams.get('v') || '';
-    }
-  } catch {
-    return '';
-  }
-  return '';
-}
-
-function describeSource(source) {
-  const label = source?.label || '';
-  const url = extractFirstUrl(label);
-  const lower = label.toLowerCase();
-
-  if (source?.type === 'file') {
-    const kind = getFileKind(source.file);
-    const Icon = kind === 'audio' ? Music2 : kind === 'video' ? Video : kind === 'image' ? Image : FileText;
-    return {
-      kind,
-      title: source.file?.name || label || 'Uploaded file',
-      eyebrow: `${kind === 'document' ? '파일' : kind[0].toUpperCase() + kind.slice(1)} 업로드가 추가되었습니다.`,
-      detail: getFileMeta(source.file),
-      Icon
-    };
-  }
-
-  const youtubeId = getYouTubeId(label);
-  if (youtubeId) {
-    return {
-      kind: 'youtube',
-      title: 'YouTube',
-      eyebrow: '영상 링크가 추가되었습니다.',
-      detail: url || label,
-      url: url || label,
-      embedUrl: `https://www.youtube.com/embed/${youtubeId}`,
-      Icon: Clapperboard
-    };
-  }
-
-  if (/soundcloud\.com/.test(lower)) {
-    return {
-      kind: 'soundcloud',
-      title: 'SoundCloud',
-      eyebrow: '오디오 링크가 추가되었습니다.',
-      detail: url || label,
-      url: url || label,
-      embedUrl: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url || label)}&color=%23ff8a00&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=true`,
-      Icon: AudioLines
-    };
-  }
-
-  if (/soundflare|soundflair/.test(lower)) {
-    return {
-      kind: 'dummy-audio',
-      title: 'Soundflare',
-      eyebrow: '임베드 대신 링크 카드로 표시합니다.',
-      detail: url || label || 'Embed is not available yet, so MVNT will show a styled placeholder.',
-      url: url || label,
-      Icon: AudioLines
-    };
-  }
-
-  if (url) {
-    return {
-      kind: 'link',
-      title: new URL(url).hostname.replace(/^www\./, ''),
-      eyebrow: '외부 링크가 추가되었습니다.',
-      detail: url,
-      url,
-      Icon: Link
-    };
-  }
-
-  return {
-    kind: 'text',
-    title: label || 'Music source',
-    eyebrow: 'Manual input',
-    detail: 'Paste a YouTube/SoundCloud link or upload a file for richer preview.',
-    Icon: Link,
-    playable: false
-  };
-}
-
-
-async function fetchSourceMetadata(description) {
-  if (!description?.url) return null;
-
-  const readOembed = async (endpoint) => {
-    const response = await fetch(endpoint);
-    if (!response.ok) throw new Error(`oEmbed failed: ${response.status}`);
-    return response.json();
-  };
-
-  try {
-    if (description.kind === 'youtube') {
-      const data = await readOembed(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(description.url)}`);
-      return {
-        title: data.title || description.title,
-        name: data.author_name || 'YouTube',
-        image: data.thumbnail_url || '',
-        linkLabel: description.url
-      };
-    }
-
-    if (description.kind === 'soundcloud') {
-      const data = await readOembed(`https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(description.url)}`);
-      return {
-        title: data.title || description.title,
-        name: data.author_name || 'SoundCloud',
-        image: data.thumbnail_url || '',
-        linkLabel: description.url
-      };
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-
-function estimateTokenUse(source, mode) {
-  if (!source) return 25;
-  if (source.type === 'file') {
-    const kind = getFileKind(source.file);
-    if (kind === 'video') return 80;
-    if (kind === 'audio') return 45;
-    if (kind === 'image') return 30;
-    return 20;
-  }
-
-  const text = source.label || '';
-  if (/youtu\.be|youtube\.com/.test(text.toLowerCase())) return 55;
-  if (/soundcloud\.com|soundflare|soundflair/.test(text.toLowerCase())) return 45;
-  return mode === 'Audio' ? 35 : 25;
-}
-
-function readPageFromHash() {
-  if (typeof window === 'undefined') return defaultPage;
-  const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
-  if (path.toLowerCase() === 'credits') return 'Credits';
-  const value = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''));
-  const normalizedValue = legacyRouteAliases[value] || value;
-  return routeIds.includes(normalizedValue) ? normalizedValue : defaultPage;
-}
-
-function getMusicPayload(dataTransfer) {
-  const itemFiles = Array.from(dataTransfer?.items || [])
-    .filter((item) => item.kind === 'file')
-    .map((item) => item.getAsFile())
-    .filter(Boolean);
-  const files = [...Array.from(dataTransfer?.files || []), ...itemFiles];
-  const file = files[0];
-  if (file) return { type: 'file', label: file.name, file };
-  const uri = dataTransfer?.getData?.('text/uri-list')?.trim();
-  if (uri) return { type: 'link', label: uri };
-  const text = dataTransfer?.getData?.('text/plain')?.trim();
-  if (text) return { type: 'link', label: text };
-  return null;
-}
-
-function inferModeFromSource(value, fallback = 'YouTube') {
-  const text = typeof value === 'string' ? value : value?.label || value?.name || '';
-  const lower = text.toLowerCase();
-  if (/youtu\.be|youtube\.com/.test(lower)) return 'YouTube';
-  if (/soundcloud\.com/.test(lower)) return 'SoundCloud';
-  if (value?.type === 'file' || audioExtensions.test(lower) || lower.startsWith('blob:')) return 'Audio';
-  return fallback;
-}
-
-function hasDroppableMusic(event) {
-  const types = Array.from(event.dataTransfer?.types || []);
-  return types.includes('Files') || types.includes('text/uri-list') || types.includes('text/plain');
-}
-
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sidebarTextVisible, setSidebarTextVisible] = useState(true);
-  const [activePage, setActivePage] = useState(readPageFromHash);
+  const [activePage, setActivePage] = useState(() => readPageFromLocation(typeof window === 'undefined' ? null : window.location));
   const [musicSource, setMusicSource] = useState(null);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [draggingMusic, setDraggingMusic] = useState(false);
@@ -382,7 +106,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const syncFromHash = () => setActivePage(readPageFromHash());
+    const syncFromHash = () => setActivePage(readPageFromLocation(window.location));
     window.addEventListener('hashchange', syncFromHash);
     window.addEventListener('popstate', syncFromHash);
     return () => {
@@ -404,8 +128,9 @@ function App() {
 
   function navigate(page) {
     if (!routeIds.includes(page)) return;
+    const nextUrl = buildPageUrl(page);
+    if (!nextUrl) return;
     setActivePage(page);
-    const nextUrl = page === 'Credits' ? '/credits' : `/#/${encodeURIComponent(page)}`;
     if (`${window.location.pathname}${window.location.hash}` !== nextUrl) window.history.pushState({ page }, '', nextUrl);
   }
 
@@ -720,15 +445,16 @@ function HomePage({ musicSource, onMusicSourceChange, sidebarExpanded }) {
   const [headlineProgress, setHeadlineProgress] = useState(100);
   const [headlineHovering, setHeadlineHovering] = useState(false);
   const headlineReturnFrameRef = useRef(null);
+  const statusTimersRef = useRef([]);
   const fileInputRef = useRef(null);
-  const [objectUrl, setObjectUrl] = useState('');
   const [sourceMetadata, setSourceMetadata] = useState(null);
   const musicValue = musicSource?.label || '';
   const sourceDescription = musicSource ? describeSource(musicSource) : null;
+  const sourcePreview = sourceDescription ? { ...sourceDescription, Icon: sourceIconMap[sourceDescription.icon] || Link } : null;
   const tokenUse = estimateTokenUse(musicSource, mode);
 
   useEffect(() => {
-    if (musicSource) setMode(inferModeFromSource(musicSource, mode));
+    if (musicSource) setMode((currentMode) => inferModeFromSource(musicSource, currentMode));
   }, [musicSource]);
 
   useEffect(() => {
@@ -745,27 +471,25 @@ function HomePage({ musicSource, onMusicSourceChange, sidebarExpanded }) {
     };
   }, [sourceDescription?.kind, sourceDescription?.url, sourceDescription?.title]);
 
-  useEffect(() => {
-    if (musicSource?.type !== 'file' || !musicSource.file) {
-      setObjectUrl('');
-      return undefined;
-    }
-
-    const nextUrl = URL.createObjectURL(musicSource.file);
-    setObjectUrl(nextUrl);
-    return () => URL.revokeObjectURL(nextUrl);
-  }, [musicSource]);
+  function clearStatusTimers() {
+    statusTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    statusTimersRef.current = [];
+  }
 
   useEffect(() => () => {
     if (headlineReturnFrameRef.current) cancelAnimationFrame(headlineReturnFrameRef.current);
+    clearStatusTimers();
   }, []);
 
   function generate(event) {
     event?.preventDefault?.();
     event?.stopPropagation?.();
+    clearStatusTimers();
     setStatus('Thinking');
-    setTimeout(() => setStatus('Composing'), 500);
-    setTimeout(() => setStatus('Ready'), 1200);
+    statusTimersRef.current = [
+      window.setTimeout(() => setStatus('Composing'), 500),
+      window.setTimeout(() => setStatus('Ready'), 1200)
+    ];
   }
 
   function updateHeadlineGradient(event) {
@@ -861,9 +585,9 @@ function HomePage({ musicSource, onMusicSourceChange, sidebarExpanded }) {
                 >
                   <Plus size={20} />
                 </button>
-                {sourceDescription ? (
+                {sourcePreview ? (
                   <AttachmentPreview
-                    description={sourceDescription}
+                    description={sourcePreview}
                     metadata={sourceMetadata}
                     onClear={() => onMusicSourceChange(null)}
                   />
@@ -1182,11 +906,13 @@ function AttachmentPreview({ description, metadata, onClear }) {
 
 
 
+
+
 function CommunityVideoCard({ video, index }) {
   return (
     <article className="group relative isolate overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950 shadow-[0_24px_70px_rgba(0,0,0,.35)]">
       <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
-      <video className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} autoPlay muted loop playsInline preload={index < 3 ? 'auto' : 'metadata'} />
+      <AutoPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} preload={index < 3 ? 'auto' : 'metadata'} eager={index < 2} />
       <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/78 to-transparent p-4 pb-12">
           <div className="flex items-center gap-2">
@@ -1214,15 +940,42 @@ function CommunityVideoCard({ video, index }) {
 }
 
 function ReelVideo({ reel, index }) {
+  const containerRef = useRef(null);
   const videoRef = useRef(null);
+  const [inView, setInView] = useState(index === 0);
   const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { rootMargin: '120px 0px', threshold: 0.5 }
+    );
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (inView && !paused) {
+      video.play().catch(() => {});
+      return;
+    }
+    video.pause();
+  }, [inView, paused, reel.src]);
 
   function togglePlayback() {
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
-      video.play();
       setPaused(false);
+      video.play().catch(() => {});
     } else {
       video.pause();
       setPaused(true);
@@ -1230,8 +983,8 @@ function ReelVideo({ reel, index }) {
   }
 
   return (
-    <button type="button" onClick={togglePlayback} className="relative size-full cursor-pointer border-0 bg-transparent p-0 text-left" aria-label={paused ? 'Play video' : 'Pause video'}>
-      <video ref={videoRef} className="size-full object-cover" src={reel.src} autoPlay muted loop playsInline preload={index < 2 ? 'auto' : 'metadata'} />
+    <button ref={containerRef} type="button" onClick={togglePlayback} className="relative size-full cursor-pointer border-0 bg-transparent p-0 text-left" aria-label={paused ? 'Play video' : 'Pause video'}>
+      <video ref={videoRef} className="size-full object-cover" src={inView ? reel.src : undefined} autoPlay={inView && !paused} muted loop playsInline preload={index < 2 ? 'auto' : 'metadata'} />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/12 to-black/24" />
       {paused && (
         <span className="pointer-events-none absolute left-1/2 top-1/2 z-20 grid size-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/58 text-white backdrop-blur-md ring-1 ring-white/12">
@@ -1278,36 +1031,11 @@ function MusicIdentityOverlay({ reel, index, expanded, onExpandedChange }) {
 
 
 function ProjectsPage() {
-  const works = communityVideos.slice(0, 12).map((video, index) => ({
-    ...video,
-    workTitle: [
-      'BLACKPINK GO hook motion',
-      'Milkshake groove builder',
-      'Krapow street draft',
-      'Golden chorus loop',
-      'Life is Reason slow wave',
-      'Hail Mary floor sequence',
-      'Neon pop routine',
-      'Studio groove 01',
-      'Arcade shuffle test',
-      'Soft light choreo',
-      'Creator loop pack',
-      'Night stage cut'
-    ][index],
-    kind: ['AI 생성', '리믹스', 'AI 생성', 'AI 생성', '리믹스', 'AI 생성', '리믹스', 'AI 생성', '리믹스', 'AI 생성', '리믹스', 'AI 생성'][index],
-    visibility: ['비공개', '비공개', '비공개', '비공개', '공개', '비공개', '공개', '비공개', '비공개', '공개', '비공개', '공개'][index],
-    action: ['계속 제작', '수정하기', '진행 보기', '제작 시작', '수정하기', '내보내기', '수정하기', '계속 제작', '내보내기', '제작 시작', '계속 제작', '내보내기'][index],
-    source: ['YouTube', 'Audio', 'YouTube', 'SoundCloud', 'Upload', 'YouTube', 'Audio', 'Upload', 'YouTube', 'SoundCloud', 'Audio', 'YouTube'][index],
-    length: ['0:18', '0:14', '0:21', '0:09', '0:24', '0:16', '0:12', '0:20', '0:11', '0:28', '0:13', '0:19'][index],
-    updated: ['방금 전', '오늘', '오늘', '어제', '2일 전', '3일 전', '지난주', '지난주', '2주 전', '2주 전', '3주 전', '3주 전'][index],
-    style: ['K-pop Hook', 'Groove', 'Street', 'Loop', 'Slow Wave', 'Floor', 'Pop', 'Studio', 'Shuffle', 'Choreo', 'Loop', 'Stage'][index]
-  }));
   const [activeProjectFilter, setActiveProjectFilter] = useState('전체');
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [page, setPage] = useState(1);
   const [visibilityByTitle, setVisibilityByTitle] = useState({});
-  const projectFilters = ['전체', 'AI 생성', '리믹스'];
-  const worksWithVisibility = works.map((work) => ({ ...work, visibility: visibilityByTitle[work.workTitle] || work.visibility }));
+  const worksWithVisibility = projectWorks.map((work) => ({ ...work, visibility: visibilityByTitle[work.workTitle] || work.visibility }));
   const visibleWorks = activeProjectFilter === '전체' ? worksWithVisibility : worksWithVisibility.filter((work) => work.kind === activeProjectFilter);
   const totalPages = Math.max(1, Math.ceil(visibleWorks.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
@@ -1826,7 +1554,7 @@ function CommunityExamples({ sidebarExpanded }) {
               aria-label={`${video.title} 상세 보기`}
             >
               <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
-              <video className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} autoPlay muted loop playsInline preload={index < 3 ? 'auto' : 'metadata'} />
+              <AutoPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} preload={index < 3 ? 'auto' : 'metadata'} eager={index < 2} />
               <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/78 to-transparent p-4 pb-12">
                   <div className="flex items-center gap-2">

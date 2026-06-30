@@ -1,10 +1,18 @@
-export const navItems = [
-  { id: 'create', label: 'Create', kicker: 'Music → Motion' },
-  { id: 'explore', label: 'Explore', kicker: 'Community' },
-  { id: 'studio', label: 'Studio', kicker: 'Drafts' },
-  { id: 'credits', label: 'Credits', kicker: 'Plans' },
-  { id: 'api', label: 'API', kicker: 'Developers' }
-];
+import { sideNavItems } from './navigation.js';
+
+const navKickers = {
+  Home: 'Music → Motion',
+  Projects: 'Drafts',
+  Search: 'Find dances',
+  Explore: 'Community',
+  Dance: 'Motion lab'
+};
+
+export const navItems = sideNavItems.map(({ id, label }) => ({
+  id,
+  label,
+  kicker: navKickers[id] || 'MVNT'
+}));
 
 export const dancers = [
   { name: 'Neon Rookie', style: 'K-pop hook', tempo: '128 BPM', color: '#B8FF4D' },

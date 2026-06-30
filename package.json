@@ -7,19 +7,20 @@
     "dev": "npm run build && vite preview --host 0.0.0.0 --port 5173 --strictPort",
     "dev:hmr": "vite --host 0.0.0.0 --strictPort",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test src/lib/__tests__/*.test.js"
   },
   "dependencies": {
-    "@radix-ui/react-dropdown-menu": "latest",
-    "@tailwindcss/vite": "latest",
-    "@vitejs/plugin-react": "latest",
-    "class-variance-authority": "latest",
-    "clsx": "latest",
-    "lucide-react": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "tailwind-merge": "latest",
-    "tailwindcss": "latest",
-    "vite": "latest"
+    "@radix-ui/react-dropdown-menu": "2.1.18",
+    "@tailwindcss/vite": "4.3.1",
+    "@vitejs/plugin-react": "6.0.3",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.22.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "tailwind-merge": "3.6.0",
+    "tailwindcss": "4.3.1",
+    "vite": "8.1.0"
   }
 }
