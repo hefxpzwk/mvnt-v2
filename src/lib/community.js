@@ -21,6 +21,11 @@ export const communityVideos = [
 
 export const communityTags = ['All', 'Trending', 'K-pop', 'Street', 'Loop', 'Ballad'];
 
+export function getVisibleCommunityTags(count = 1) {
+  const visibleCount = Math.min(communityTags.length, Math.max(1, Math.floor(Number(count) || 1)));
+  return communityTags.slice(0, visibleCount);
+}
+
 export function getCommunityVideoTags(video, index) {
   const text = `${video.title} ${video.creator}`.toLowerCase();
   const tags = ['All'];

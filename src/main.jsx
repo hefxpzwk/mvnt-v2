@@ -55,7 +55,7 @@ import {
 import './index.css';
 import { AutoPlayVideo } from './components/AutoPlayVideo.jsx';
 import { buildPageUrl, defaultPage, readPageFromLocation, routeIds, sideNavItems } from './lib/navigation.js';
-import { communityTags, communityVideos, filterCommunityVideos, getCommunityVideoTags } from './lib/community.js';
+import { communityTags, communityVideos, filterCommunityVideos, getCommunityVideoTags, getVisibleCommunityTags } from './lib/community.js';
 import { projectFilters, projectWorks } from './lib/projects.js';
 import { describeSource, estimateTokenUse, fetchSourceMetadata, getMusicPayload, hasDroppableMusic, inferModeFromSource } from './lib/source.js';
 
@@ -922,7 +922,7 @@ function CommunityVideoCard({ video, index, onClick }) {
     <Component
       type={onClick ? 'button' : undefined}
       onClick={onClick}
-      className={`group relative isolate overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] ${onClick ? 'outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45' : ''}`}
+      className={`group relative isolate overflow-hidden border border-white/10 bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] ${onClick ? 'outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45' : ''}`}
       aria-label={onClick ? `${video.title} 상세 보기` : undefined}
     >
       <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
@@ -1245,6 +1245,73 @@ function ProjectActionButton({ icon: Icon, label }) {
   );
 }
 
+
+function ProgressiveCommunityTagFilters({ activeTag, onTagChange, countLabel, variant = 'search', stopPointerEvents = false }) {
+  const [visibleTagCount, setVisibleTagCount] = useState(1);
+  const visibleTags = getVisibleCommunityTags(visibleTagCount);
+  const canAddFilter = visibleTagCount < communityTags.length;
+  const isHomeVariant = variant === 'home';
+
+  const chipBaseClass = isHomeVariant
+    ? 'shrink-0 min-h-11 rounded-full border px-4 py-0 text-xs font-black transition-all'
+    : 'min-h-9 rounded-full border px-3 text-[11px] font-black transition';
+  const selectedClass = isHomeVariant
+    ? 'scale-[1.02] border-white bg-white text-black shadow-[0_10px_28px_rgba(255,255,255,.12)]'
+    : 'border-white bg-white text-black';
+  const idleClass = isHomeVariant
+    ? 'border-white/12 bg-white/[.035] text-mvnt-muted hover:border-white/28 hover:text-white'
+    : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:text-white';
+  const addButtonClass = isHomeVariant
+    ? 'shrink-0 inline-flex min-h-11 items-center gap-2 rounded-full border border-dashed border-mvnt-orange/45 bg-mvnt-orange/[.08] px-4 text-xs font-black text-mvnt-orange transition hover:border-mvnt-orange hover:bg-mvnt-orange/15 hover:text-mvnt-yellow'
+    : 'inline-flex min-h-9 items-center gap-1.5 rounded-full border border-dashed border-mvnt-orange/45 bg-mvnt-orange/[.08] px-3 text-[11px] font-black text-mvnt-orange transition hover:border-mvnt-orange hover:bg-mvnt-orange/15 hover:text-mvnt-yellow';
+
+  function addFilter(event) {
+    if (stopPointerEvents) event.stopPropagation();
+    setVisibleTagCount((count) => Math.min(count + 1, communityTags.length));
+  }
+
+  function selectTag(event, tag) {
+    if (stopPointerEvents) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    onTagChange(tag);
+  }
+
+  return (
+    <>
+      {visibleTags.map((tag) => {
+        const selected = activeTag === tag;
+        return (
+          <button
+            key={tag}
+            type="button"
+            onPointerDown={stopPointerEvents ? (event) => event.stopPropagation() : undefined}
+            onClick={(event) => selectTag(event, tag)}
+            aria-pressed={selected}
+            className={`${chipBaseClass} ${selected ? selectedClass : idleClass}`}
+          >
+            #{tag}
+          </button>
+        );
+      })}
+      {canAddFilter && (
+        <button
+          type="button"
+          onPointerDown={stopPointerEvents ? (event) => event.stopPropagation() : undefined}
+          onClick={addFilter}
+          className={addButtonClass}
+          aria-label={`${communityTags[visibleTagCount]} 필터 추가`}
+        >
+          <Plus size={isHomeVariant ? 15 : 13} strokeWidth={3} />
+          필터 추가
+        </button>
+      )}
+      {countLabel && <span className={isHomeVariant ? 'ml-1 shrink-0 text-xs font-black text-mvnt-muted' : 'ml-auto text-xs font-black text-mvnt-muted'}>{countLabel}</span>}
+    </>
+  );
+}
+
 function SearchPage({ initialQuery = '', onCreateFromQuery, sidebarExpanded }) {
   const [activeTag, setActiveTag] = useState('All');
   const [query, setQuery] = useState(initialQuery);
@@ -1341,16 +1408,8 @@ function SearchPage({ initialQuery = '', onCreateFromQuery, sidebarExpanded }) {
               />
             )}
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {communityTags.map((tag) => {
-              const selected = activeTag === tag;
-              return (
-                <button key={tag} type="button" onClick={() => setActiveTag(tag)} className={`min-h-9 rounded-full border px-3 text-[11px] font-black transition ${selected ? 'border-white bg-white text-black' : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:text-white'}`}>
-                  #{tag}
-                </button>
-              );
-            })}
-            <span className="ml-auto text-xs font-black text-mvnt-muted">{visibleVideos.length} results</span>
+          <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="ARI community filters">
+            <ProgressiveCommunityTagFilters activeTag={activeTag} onTagChange={setActiveTag} countLabel={`${visibleVideos.length} results`} />
           </div>
         </div>
 
@@ -1529,77 +1588,181 @@ function ExplorePage() {
 
 
 function DancePage() {
-  const danceStyles = [
-    { name: 'K-pop Hook', bpm: '128 BPM', cue: '포인트 안무 중심', tone: 'from-pink-500/24' },
-    { name: 'Street Groove', bpm: '104 BPM', cue: '하체 리듬 강조', tone: 'from-mvnt-orange/24' },
-    { name: 'Meme Loop', bpm: '96 BPM', cue: '짧고 반복 가능한 루프', tone: 'from-violet-400/24' },
-    { name: 'Slow Wave', bpm: '72 BPM', cue: '상체 웨이브와 실루엣', tone: 'from-sky-300/20' }
+  const [activeGenre, setActiveGenre] = useState('음악 분석');
+  const [activePreset, setActivePreset] = useState('Studio');
+  const danceGenres = ['기본', '음악 분석', '커스텀'];
+  const presets = ['Studio', 'Sky', 'Peach', 'Mint', 'Night'];
+  const motionModes = ['3D Motion', '2D'];
+  const qualitySettings = [
+    { label: 'Tracking', value: 'OFF' },
+    { label: 'Skeleton', value: 'OFF' },
+    { label: 'Toon', value: 'ON', active: true }
   ];
 
   return (
-    <section className="min-h-screen px-2 pb-20 pt-24">
-      <div className="mx-auto w-[min(1120px,100%)]">
-        <div className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
-          <div>
-            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.045] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-mvnt-muted">
-              <Footprints size={14} /> Dance Studio
-            </span>
-            <h1 className="text-[clamp(42px,7vw,88px)] font-black leading-[0.92] tracking-[-0.065em] text-white">댄스</h1>
-            <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-mvnt-muted sm:text-base">음악에 맞는 안무 스타일, 무드, 움직임 강도를 선택해서 새로운 댄스 초안을 구성하는 전용 페이지입니다.</p>
-          </div>
-          <div className="rounded-[18px] border border-white/10 bg-neutral-950 p-4 shadow-[0_22px_70px_rgba(0,0,0,.34)]">
-            <div className="aspect-video overflow-hidden rounded-[18px] bg-[radial-gradient(circle_at_50%_30%,rgba(255,138,0,.38),transparent_34%),linear-gradient(150deg,#242424,#070707)] p-5">
-              <div className="flex h-full items-end justify-center gap-5">
-                {[0, 1, 2].map((item) => (
-                  <span key={item} className="block w-10 rounded-full bg-gradient-to-b from-white to-white/24 shadow-[0_0_38px_rgba(255,138,0,.26)]" style={{ height: `${54 + item * 22}%` }} />
-                ))}
-              </div>
-            </div>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <div>
-                <strong className="block text-xs font-black text-white">Motion preview</strong>
-                <span className="text-[11px] font-bold text-mvnt-muted">스타일 선택 후 프리뷰가 표시됩니다.</span>
-              </div>
-              <button type="button" className="grid size-7 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-black">
-                <Play size={15} fill="currentColor" />
+    <section className="min-h-screen bg-[#070808] px-2 pb-5 pt-20 text-white sm:px-4">
+      <div className="mx-auto grid min-h-[calc(100vh-96px)] w-[min(1480px,100%)] gap-4 lg:grid-cols-[360px_1fr]">
+        <aside className="relative overflow-hidden rounded-[26px] border border-white/10 bg-[#111315] shadow-[0_28px_90px_rgba(0,0,0,.42)]">
+          <div className="flex border-b border-white/8 bg-white/[.025]">
+            {['DANCE', 'DANCER'].map((tab, index) => (
+              <button
+                key={tab}
+                type="button"
+                className={`relative flex min-h-[62px] flex-1 items-center justify-center gap-2 text-sm font-black tracking-[-0.02em] transition ${index === 0 ? 'bg-[#15181a] text-white' : 'text-white/36 hover:text-white/70'}`}
+              >
+                {index === 0 ? <Music2 size={17} /> : <UserRound size={17} />}
+                {tab}
+                {index === 1 && <span className="rounded-md bg-mvnt-yellow/18 px-1.5 py-0.5 text-[10px] text-mvnt-yellow">3D</span>}
+                {index === 0 && <span className="absolute inset-x-8 bottom-0 h-0.5 rounded-full bg-white" />}
               </button>
-            </div>
+            ))}
           </div>
-        </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {danceStyles.map((style, index) => (
-            <article key={style.name} className="group relative isolate min-h-[220px] overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950 p-5 shadow-[0_22px_70px_rgba(0,0,0,.3)]">
-              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${style.tone} via-transparent to-transparent opacity-90 transition group-hover:opacity-100`} />
-              <div className="relative flex h-full flex-col justify-between">
-                <span className="grid size-12 place-items-center rounded-2xl bg-white/[.07] text-mvnt-orange ring-1 ring-white/10">
-                  <Footprints size={22} />
-                </span>
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.16em] text-mvnt-muted">Style {String(index + 1).padStart(2, '0')}</span>
-                  <h2 className="mt-2 text-2xl font-black tracking-[-0.05em] text-white">{style.name}</h2>
-                  <p className="mt-2 text-[11px] font-bold leading-relaxed text-mvnt-muted">{style.cue}</p>
-                  <span className="mt-4 inline-flex rounded-full bg-white/[.07] px-2 py-1 text-xs font-black text-white/74">{style.bpm}</span>
+          <div className="p-5">
+            <div className="rounded-[24px] border border-white/10 bg-[#181b1e] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+              <div>
+                <h1 className="text-lg font-black tracking-[-0.04em]">댄스 음악 등록하기</h1>
+                <p className="mt-1 text-xs font-bold leading-relaxed text-white/48">어떤 음악이든 좋아요. 새로운 춤을 만들어봐요!</p>
+              </div>
+
+              <div className="mt-5 rounded-[22px] border border-dashed border-white/14 bg-[#202326] p-4 text-center shadow-[inset_0_0_38px_rgba(255,255,255,.025)]">
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: '링크 붙여넣기', icon: Link },
+                    { label: '업로드', icon: UploadCloud },
+                    { label: '드래그', icon: MousePointerIcon }
+                  ].map(({ label, icon: Icon }) => (
+                    <button key={label} type="button" className="group grid min-h-[82px] place-items-center rounded-2xl bg-white/[.035] text-white/58 transition hover:bg-white/[.07] hover:text-white">
+                      <span className="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[.04] transition group-hover:border-mvnt-orange/40 group-hover:text-mvnt-orange">
+                        <Icon size={19} />
+                      </span>
+                      <span className="text-[11px] font-black">{label}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-4 text-[11px] font-bold leading-relaxed text-white/36">지원 링크: YouTube, SoundCloud, Suno<br />지원 파일: mp3, wav</p>
+              </div>
+
+              <div className="mt-6 border-t border-white/8 pt-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-sm font-black tracking-[-0.03em]">댄스 장르</h2>
+                  <button type="button" className="grid size-7 place-items-center rounded-lg bg-white/[.05] text-white/42 transition hover:text-white" aria-label="장르 설정">
+                    <SlidersHorizontal size={14} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 rounded-2xl border border-white/10 bg-white/[.035] p-1">
+                  {danceGenres.map((genre) => {
+                    const selected = activeGenre === genre;
+                    return (
+                      <button
+                        key={genre}
+                        type="button"
+                        onClick={() => setActiveGenre(genre)}
+                        className={`min-h-10 rounded-xl text-[11px] font-black transition ${selected ? 'bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,.12)]' : 'text-white/48 hover:text-white'}`}
+                      >
+                        {genre}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            </article>
-          ))}
-        </div>
-
-        <div className="mt-6 rounded-[18px] border border-white/10 bg-white/[.035] p-5">
-          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-            <div>
-              <h2 className="text-2xl font-black tracking-[-0.05em] text-white">새 댄스 만들기</h2>
-              <p className="mt-2 text-sm font-bold text-mvnt-muted">홈에서 음악을 넣은 뒤 이 페이지에서 스타일을 고르면 안무 초안 흐름으로 이어집니다.</p>
             </div>
-            <button type="button" className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-5 text-xs font-black text-white shadow-[0_16px_38px_rgba(255,138,0,.2)]">
-              <Wand2 size={17} /> Generate dance
+
+            <button type="button" className="mt-5 flex min-h-16 w-full items-center justify-center gap-2 rounded-[22px] bg-gradient-to-r from-mvnt-orange via-mvnt-yellow to-[#dcff16] text-base font-black text-black shadow-[0_18px_54px_rgba(255,184,71,.24)] transition hover:brightness-110">
+              <Wand2 size={20} /> Make Dance!
             </button>
+
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {[
+                { label: '8s', icon: Play },
+                { label: 'Auto', icon: Check },
+                { label: '1080p', icon: Sparkles }
+              ].map(({ label, icon: Icon }) => (
+                <button key={label} type="button" className="flex min-h-12 items-center justify-center gap-1.5 rounded-2xl bg-white/[.055] text-xs font-black text-white/72 transition hover:bg-white/[.08] hover:text-white">
+                  <Icon size={15} /> {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        </aside>
+
+        <main className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#f7f7f4] text-[#151515] shadow-[0_30px_100px_rgba(0,0,0,.45)]">
+          <div className="absolute inset-x-0 top-0 z-20 flex flex-wrap items-center justify-between gap-3 p-5">
+            <div className="inline-flex rounded-2xl bg-black/10 p-1 shadow-[inset_0_1px_2px_rgba(0,0,0,.12)]">
+              {motionModes.map((mode, index) => (
+                <button key={mode} type="button" className={`min-h-11 rounded-xl px-5 text-sm font-black transition ${index === 0 ? 'bg-mvnt-orange text-black shadow-[0_10px_24px_rgba(255,138,0,.28)]' : 'text-black/34 hover:text-black/60'}`}>
+                  {mode}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {qualitySettings.map((item) => (
+                <button key={item.label} type="button" className={`min-h-10 rounded-xl border px-3 text-xs font-black shadow-sm transition ${item.active ? 'border-white bg-white text-black' : 'border-black/10 bg-black/[.06] text-black/70 hover:bg-black/[.09]'}`}>
+                  {item.label} {item.value}
+                </button>
+              ))}
+              <span className="mx-1 h-7 w-px bg-black/10" />
+              {[FileAudio, UploadCloud, Image].map((Icon, index) => (
+                <button key={index} type="button" className={`grid size-10 place-items-center rounded-xl border border-black/10 shadow-sm transition ${index === 2 ? 'bg-mvnt-orange text-black' : 'bg-black/[.06] text-black/70 hover:bg-black/[.09]'}`} aria-label="studio tool">
+                  <Icon size={17} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative grid min-h-[720px] place-items-center px-6 pb-24 pt-24 lg:min-h-full">
+            <div className="absolute inset-x-0 bottom-0 h-[34%] bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,.10),transparent_55%),linear-gradient(180deg,transparent,#e6e2dc)]" />
+            <div className="absolute left-1/2 top-[25%] z-10 -translate-x-1/2 rounded-[26px] border-[4px] border-[#171717] bg-white px-7 py-3 text-sm font-black shadow-[0_14px_34px_rgba(0,0,0,.12)] after:absolute after:left-1/2 after:top-[calc(100%-2px)] after:size-4 after:-translate-x-1/2 after:rotate-45 after:border-b-[4px] after:border-r-[4px] after:border-[#171717] after:bg-white">
+              new song, new personality unlocked ✨
+            </div>
+
+            <div className="relative z-10 mt-20 h-[430px] w-[270px]">
+              <div className="absolute left-1/2 top-[402px] h-8 w-40 -translate-x-1/2 rounded-full bg-black/16 blur-sm" />
+              <div className="absolute left-[112px] top-0 size-16 rounded-full border-[3px] border-[#202020] bg-[#f0c17f] shadow-[inset_-12px_-8px_0_rgba(176,112,48,.16)]" />
+              <div className="absolute left-[92px] top-[58px] h-[162px] w-[92px] rounded-[44px_44px_34px_34px] border-[3px] border-[#202020] bg-[#e8b66f] shadow-[inset_-18px_-8px_0_rgba(174,103,44,.18)]">
+                <span className="absolute left-4 top-0 h-full w-0.5 bg-white/70" />
+                <span className="absolute right-5 top-2 h-[88%] w-0.5 bg-white/60" />
+                <span className="absolute left-2 top-12 h-0.5 w-[82%] bg-white/60" />
+                <span className="absolute left-3 top-24 h-0.5 w-[74%] bg-white/55" />
+              </div>
+              <div className="absolute left-[38px] top-[72px] h-20 w-24 origin-right -rotate-[42deg] rounded-full border-[3px] border-[#202020] bg-[#e8b66f]" />
+              <div className="absolute left-[24px] top-[50px] h-12 w-9 rotate-[18deg] rounded-full border-[3px] border-[#202020] bg-[#f0c17f]" />
+              <div className="absolute right-[24px] top-[72px] h-20 w-24 origin-left rotate-[42deg] rounded-full border-[3px] border-[#202020] bg-[#e8b66f]" />
+              <div className="absolute right-[10px] top-[54px] h-12 w-9 -rotate-[18deg] rounded-full border-[3px] border-[#202020] bg-[#f0c17f]" />
+              <div className="absolute left-[94px] top-[208px] h-44 w-10 -rotate-[7deg] rounded-full border-[3px] border-[#202020] bg-[#e8b66f]" />
+              <div className="absolute left-[83px] top-[356px] h-18 w-12 -rotate-[3deg] rounded-full border-[3px] border-[#202020] bg-[#f0c17f]" />
+              <div className="absolute right-[82px] top-[204px] h-44 w-10 rotate-[16deg] rounded-full border-[3px] border-[#202020] bg-[#e8b66f]" />
+              <div className="absolute right-[62px] top-[356px] h-18 w-12 rotate-[8deg] rounded-full border-[3px] border-[#202020] bg-[#f0c17f]" />
+            </div>
+          </div>
+
+          <div className="absolute inset-x-5 bottom-5 z-20 rounded-[22px] border border-black/8 bg-white/88 p-3 shadow-[0_18px_58px_rgba(0,0,0,.14)] backdrop-blur-xl">
+            <div className="flex flex-wrap items-center gap-2">
+              {presets.map((preset) => {
+                const selected = activePreset === preset;
+                return (
+                  <button key={preset} type="button" onClick={() => setActivePreset(preset)} className={`min-h-9 rounded-xl px-3 text-xs font-black transition ${selected ? 'bg-mvnt-orange text-black shadow-[0_8px_18px_rgba(255,138,0,.25)]' : 'bg-black/[.055] text-black/45 hover:text-black'}`}>
+                    {preset}
+                  </button>
+                );
+              })}
+              <span className="ml-2 text-xs font-black text-black/38">Light Rotation</span>
+              <div className="h-5 min-w-[180px] flex-1 rounded-full bg-black/12 p-0.5 shadow-[inset_0_1px_2px_rgba(0,0,0,.12)]">
+                <div className="ml-[48%] size-4 rounded-full bg-mvnt-orange ring-2 ring-white" />
+              </div>
+              <span className="text-xs font-black text-black/38">0°</span>
+              <button type="button" className="min-h-9 rounded-xl bg-black/[.08] px-3 text-xs font-black text-black/70">Fixed</button>
+            </div>
+          </div>
+        </main>
       </div>
     </section>
   );
+}
+
+function MousePointerIcon(props) {
+  return <Send {...props} className={`-rotate-45 ${props.className || ''}`} />;
 }
 
 function CommunityExamples({ sidebarExpanded }) {
@@ -1623,27 +1786,14 @@ function CommunityExamples({ sidebarExpanded }) {
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
-            <div className="relative z-30 flex items-center gap-2 overflow-hidden pb-1 lg:pb-0" aria-label="Community video tags">
-              {communityTags.map((tag) => {
-                const selected = activeTag === tag;
-                return (
-                  <button
-                    type="button"
-                    key={tag}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setActiveTag(tag);
-                    }}
-                    aria-pressed={selected}
-                    className={`shrink-0 min-h-11 rounded-full border px-4 py-0 text-xs font-black transition-all ${selected ? 'scale-[1.02] border-white bg-white text-black shadow-[0_10px_28px_rgba(255,255,255,.12)]' : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:border-white/28 hover:text-white'}`}
-                  >
-                    #{tag}
-                  </button>
-                );
-              })}
-              <span className="ml-1 shrink-0 text-xs font-black text-mvnt-muted">{visibleVideos.length} videos</span>
+            <div className="relative z-30 flex items-center gap-2 overflow-hidden pb-1 lg:pb-0" aria-label="ARI community filters">
+              <ProgressiveCommunityTagFilters
+                activeTag={activeTag}
+                onTagChange={setActiveTag}
+                countLabel={`${visibleVideos.length} videos`}
+                variant="home"
+                stopPointerEvents
+              />
             </div>
           </div>
         </div>
@@ -1653,7 +1803,7 @@ function CommunityExamples({ sidebarExpanded }) {
               type="button"
               key={`${video.src}-${index}`}
               onClick={() => setSelectedVideo({ video, index })}
-              className="group relative isolate overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45"
+              className="group relative isolate overflow-hidden border border-white/10 bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45"
               aria-label={`${video.title} 상세 보기`}
             >
               <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
