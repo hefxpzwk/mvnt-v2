@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
+  Eye,
   FileText,
   Flame,
   Footprints,
@@ -22,6 +23,7 @@ import {
   HelpCircle,
   Image,
   Link,
+  Pencil,
   Music2,
   Search,
   Share2,
@@ -31,6 +33,7 @@ import {
   Play,
   Plus,
   Settings,
+  Type,
   UploadCloud,
   UserRound,
   Video,
@@ -338,6 +341,7 @@ function App() {
   const [sidebarTextVisible, setSidebarTextVisible] = useState(true);
   const [activePage, setActivePage] = useState(readPageFromHash);
   const [musicSource, setMusicSource] = useState(null);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [draggingMusic, setDraggingMusic] = useState(false);
   const mainRef = useRef(null);
 
@@ -367,6 +371,18 @@ function App() {
     setActivePage(page);
     const nextUrl = page === 'Credits' ? '/credits' : `/#/${encodeURIComponent(page)}`;
     if (`${window.location.pathname}${window.location.hash}` !== nextUrl) window.history.pushState({ page }, '', nextUrl);
+  }
+
+  function searchEverywhere(rawQuery) {
+    const nextQuery = rawQuery.trim();
+    setGlobalSearchQuery(nextQuery);
+    navigate('Search');
+  }
+
+  function createDanceFromQuery(rawQuery) {
+    const nextQuery = rawQuery.trim();
+    if (nextQuery) setMusicSource({ type: 'link', label: nextQuery });
+    navigate('Home');
   }
 
   useEffect(() => {
@@ -440,12 +456,18 @@ function App() {
         onToggle={() => setSidebarOpen((value) => !value)}
       />
       <main ref={mainRef} className={`mx-auto h-screen w-[min(1440px,calc(100vw-32px))] overflow-y-auto overscroll-contain transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
-        <TopHeader activePage={activePage} sidebarExpanded={sidebarExpanded} onNavigate={navigate} />
+        <TopHeader
+          activePage={activePage}
+          sidebarExpanded={sidebarExpanded}
+          onNavigate={navigate}
+          onSearchSubmit={searchEverywhere}
+          onCreateFromQuery={createDanceFromQuery}
+        />
         <div className="relative isolate z-0">
           {activePage === 'Projects' ? (
             <ProjectsPage />
           ) : activePage === 'Search' ? (
-            <SearchPage />
+            <SearchPage initialQuery={globalSearchQuery} onCreateFromQuery={createDanceFromQuery} />
           ) : activePage === 'Explore' ? (
             <ExplorePage />
           ) : activePage === 'Dance' ? (
@@ -461,11 +483,40 @@ function App() {
 }
 
 
-function TopHeader({ activePage, sidebarExpanded, onNavigate }) {
-  return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-[#070707]/86 backdrop-blur-2xl">
-      <div className={`pointer-events-auto flex h-12 w-full items-center justify-end gap-4 py-0 pr-5 transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
+function TopHeader({ activePage, sidebarExpanded, onNavigate, onSearchSubmit, onCreateFromQuery }) {
+  const [headerQuery, setHeaderQuery] = useState('');
+  function submitSearch(event) {
+    event.preventDefault();
+    onSearchSubmit(headerQuery);
+  }
 
+
+  return (
+    <header className="pointer-events-none fixed inset-x-0 top-0 z-40 border-b border-white/[.075] bg-[#070707]/28 shadow-[0_18px_60px_rgba(0,0,0,.16)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#070707]/22">
+      <form onSubmit={submitSearch} className={`pointer-events-none absolute inset-y-0 right-[300px] hidden items-center justify-center transition-[left] duration-300 ease-[cubic-bezier(.22,1,.36,1)] md:flex lg:right-[330px] ${sidebarExpanded ? 'left-[236px]' : 'left-[88px]'}`} role="search" aria-label="전역 검색">
+        <div className={`pointer-events-auto group flex h-10 w-[min(420px,100%)] items-center overflow-hidden rounded-full border bg-black/24 text-mvnt-muted shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_14px_42px_rgba(0,0,0,.22)] backdrop-blur-2xl transition focus-within:border-mvnt-orange/55 focus-within:bg-black/34 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_16px_52px_rgba(255,138,0,.14)] ${activePage === 'Search' ? 'border-mvnt-orange/35' : 'border-white/14'}`}>
+            <button type="submit" className="ml-3 grid size-7 shrink-0 place-items-center rounded-full text-white/62 transition hover:bg-white/[.12] hover:text-white group-focus-within:text-white/86" aria-label="검색">
+              <Search size={17} strokeWidth={2.65} />
+            </button>
+            <input
+              className="min-w-0 flex-1 bg-transparent px-3 text-[15px] font-bold text-white outline-none placeholder:text-white/48"
+              placeholder="검색"
+              value={headerQuery}
+              onChange={(event) => setHeaderQuery(event.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setHeaderQuery('')}
+              className={`mr-3 grid size-6 shrink-0 place-items-center rounded-full text-white/45 transition hover:bg-white/[.12] hover:text-white ${headerQuery ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+              aria-label="검색어 지우기"
+              tabIndex={headerQuery ? 0 : -1}
+            >
+              <X size={15} strokeWidth={2.7} />
+            </button>
+        </div>
+      </form>
+
+      <div className={`pointer-events-auto relative z-10 flex h-12 w-full items-center justify-end gap-4 py-0 pr-5 transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
         <div className="flex shrink-0 items-center gap-1.5">
           <button type="button" onClick={() => onNavigate('Credits')} className="hidden min-h-9 items-center rounded-full px-3.5 text-xs font-black transition hover:bg-white/[.04] sm:inline-flex">
             <span className="bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-500 bg-clip-text text-transparent">
@@ -542,11 +593,12 @@ function Sidebar({ open, textVisible, targetOpen, activePage, onNavigate, onTogg
         <button
           type="button"
           onClick={() => {
-            if (!targetOpen) onToggle();
+            if (targetOpen) onNavigate('Home');
+            else onToggle();
           }}
-          className={`group/brand relative isolate grid size-10 shrink-0 place-items-center overflow-hidden rounded-[14px] transition-transform duration-200 ${targetOpen ? 'cursor-default' : 'hover:scale-[1.02]'}`}
-          aria-label={targetOpen ? 'MVNT' : 'Expand sidebar'}
-          title={targetOpen ? 'MVNT' : 'Expand sidebar'}
+          className="group/brand relative isolate grid size-10 shrink-0 place-items-center overflow-hidden rounded-[14px] transition-transform duration-200 hover:scale-[1.02]"
+          aria-label={targetOpen ? '홈으로 이동' : '사이드바 열기'}
+          title={targetOpen ? '홈으로 이동' : '사이드바 열기'}
         >
           <img src="/favicon.svg" alt="MVNT" className="size-8 object-contain" />
           {!targetOpen && (
@@ -1241,16 +1293,15 @@ function ProjectsPage() {
       <div className="mx-auto w-[min(1220px,100%)]">
         <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-[clamp(30px,4vw,46px)] font-black leading-none tracking-[-0.055em] text-white">채널 콘텐츠</h1>
-            <p className="mt-2 text-sm font-bold text-mvnt-muted">내가 제작한 댄스 작업을 한 곳에서 관리합니다.</p>
+            <h1 className="text-[clamp(30px,4vw,46px)] font-black leading-none tracking-[-0.055em] text-white">프로젝트</h1>
           </div>
           <button type="button" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-black text-black transition hover:scale-[1.02]">
             <Wand2 size={16} /> 만들기
           </button>
         </div>
 
-        <div className="rounded-[18px] border border-white/10 bg-neutral-950/88 shadow-[0_24px_80px_rgba(0,0,0,.32)] backdrop-blur-xl">
-          <div className="border-b border-white/10 px-4 pt-3">
+        <div className="border-y border-white/10 bg-neutral-950/48">
+          <div className="border-b border-white/10 px-0 pt-3">
             <div className="flex gap-7 text-sm font-black">
               {projectFilters.map((filter) => {
                 const selected = activeProjectFilter === filter;
@@ -1270,7 +1321,7 @@ function ProjectsPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 border-b border-white/10 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 border-b border-white/10 py-4 lg:flex-row lg:items-center lg:justify-between">
             <button type="button" className="inline-flex min-h-9 w-fit items-center gap-2 rounded-full border border-white/12 px-3.5 text-xs font-black text-mvnt-muted transition hover:bg-white/[.06] hover:text-white">
               <SlidersHorizontal size={15} /> 필터
             </button>
@@ -1280,7 +1331,7 @@ function ProjectsPage() {
             </label>
           </div>
 
-          <div className="hidden grid-cols-[minmax(430px,1fr)_130px_120px_100px_110px] gap-4 border-b border-white/10 px-4 py-3 text-[11px] font-black uppercase tracking-[0.12em] text-white/38 lg:grid">
+          <div className="hidden grid-cols-[minmax(430px,1fr)_130px_120px_100px_110px] gap-4 border-b border-white/10 py-3 text-[11px] font-black uppercase tracking-[0.12em] text-white/38 lg:grid">
             <span>동영상</span>
             <span>구분</span>
             <span>공개 여부</span>
@@ -1290,34 +1341,11 @@ function ProjectsPage() {
 
           <div className="divide-y divide-white/10">
             {pageWorks.map((work, index) => (
-              <article key={`${work.workTitle}-${work.src}`} className="group grid gap-4 p-4 transition hover:bg-white/[.035] lg:grid-cols-[minmax(430px,1fr)_130px_120px_100px_110px] lg:items-center">
-                <div className="grid min-w-0 grid-cols-[150px_1fr] gap-4">
-                  <div className="relative isolate aspect-video overflow-hidden rounded-lg bg-black ring-1 ring-white/10">
-                    <video className="size-full object-cover" src={work.src} autoPlay muted loop playsInline preload={index < 5 ? 'auto' : 'metadata'} />
-                    <span className="absolute bottom-1.5 right-1.5 rounded bg-black/78 px-1.5 py-0.5 text-[10px] font-black text-white">{work.length}</span>
-                  </div>
-                  <div className="min-w-0 py-1">
-                    <h2 className="truncate text-sm font-black text-white">{work.workTitle}</h2>
-                    <p className="mt-1 line-clamp-2 text-xs font-bold leading-relaxed text-mvnt-muted">{work.source} 소스 · {work.style}</p>
-                    <div className="mt-2 flex gap-2 text-[11px] font-black text-white/34 opacity-0 transition group-hover:opacity-100">
-                      <button type="button" className="hover:text-white">수정</button>
-                      <span>·</span>
-                      <button type="button" className="hover:text-white">제목 수정</button>
-                      <span>·</span>
-                      <button type="button" className="hover:text-white">공개 설정</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-3 lg:block"><span className="text-xs font-black text-white/38 lg:hidden">구분</span><span className="text-xs font-bold text-white/70">{work.kind}</span></div>
-                <div className="flex items-center justify-between gap-3 lg:block"><span className="text-xs font-black text-white/38 lg:hidden">공개 여부</span><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${work.visibility === '공개' ? 'bg-emerald-400/12 text-emerald-200' : 'bg-white/[.07] text-white/62'}`}>{work.visibility}</span></div>
-                <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">길이</span>{work.length}</div>
-                <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">날짜</span>{work.updated}</div>
-              </article>
+              <ProjectContentRow key={`${work.workTitle}-${work.src}`} work={work} index={index} />
             ))}
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-3 text-xs font-bold text-mvnt-muted sm:flex-row sm:items-center sm:justify-end">
+          <div className="flex flex-col gap-3 border-t border-white/10 py-3 text-xs font-bold text-mvnt-muted sm:flex-row sm:items-center sm:justify-end">
             <label className="flex items-center gap-2">
               페이지당 행 수:
               <select value={rowsPerPage} onChange={changeRowsPerPage} className="rounded-md border border-white/10 bg-neutral-950 px-2 py-1 font-black text-white outline-none">
@@ -1336,10 +1364,82 @@ function ProjectsPage() {
   );
 }
 
-function SearchPage() {
+
+function ProjectContentRow({ work, index }) {
+  const videoRef = useRef(null);
+  const [hovering, setHovering] = useState(false);
+
+  function startPreview() {
+    setHovering(true);
+    const video = videoRef.current;
+    if (!video) return;
+    video.play().catch(() => {});
+  }
+
+  function stopPreview() {
+    setHovering(false);
+    const video = videoRef.current;
+    if (!video) return;
+    video.pause();
+    video.currentTime = 0;
+  }
+
+  return (
+    <article
+      className="group grid gap-4 py-4 transition hover:bg-white/[.035] lg:grid-cols-[minmax(430px,1fr)_130px_120px_100px_110px] lg:items-center"
+      onMouseEnter={startPreview}
+      onMouseLeave={stopPreview}
+      onFocus={startPreview}
+      onBlur={stopPreview}
+    >
+      <div className="grid min-w-0 grid-cols-[150px_1fr] gap-4">
+        <div className="relative isolate aspect-video overflow-hidden rounded-lg bg-black ring-1 ring-white/10">
+          <video ref={videoRef} className="size-full object-cover" src={work.src} muted loop playsInline preload="metadata" />
+          <div className="pointer-events-none absolute inset-0 bg-black/0 transition group-hover:bg-black/10" />
+          <span className="pointer-events-none absolute left-1/2 top-1/2 grid size-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/48 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100">
+            <Play size={18} fill="currentColor" />
+          </span>
+          <span className="absolute bottom-1.5 right-1.5 rounded bg-black/78 px-1.5 py-0.5 text-[10px] font-black text-white">{work.length}</span>
+        </div>
+        <div className="min-w-0 py-1">
+          <h2 className="truncate text-sm font-black text-white">{work.workTitle}</h2>
+          <p className="mt-1 line-clamp-2 text-xs font-bold leading-relaxed text-mvnt-muted">{work.source} 소스 · {work.style}</p>
+          <div className="mt-2 flex gap-1.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+            <ProjectActionButton icon={Pencil} label="수정" />
+            <ProjectActionButton icon={Type} label="제목 수정" />
+            <ProjectActionButton icon={Eye} label="공개 설정" />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 lg:block"><span className="text-xs font-black text-white/38 lg:hidden">구분</span><span className="text-xs font-bold text-white/70">{work.kind}</span></div>
+      <div className="flex items-center justify-between gap-3 lg:block"><span className="text-xs font-black text-white/38 lg:hidden">공개 여부</span><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${work.visibility === '공개' ? 'bg-emerald-400/12 text-emerald-200' : 'bg-white/[.07] text-white/62'}`}>{work.visibility}</span></div>
+      <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">길이</span>{work.length}</div>
+      <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">날짜</span>{work.updated}</div>
+    </article>
+  );
+}
+
+function ProjectActionButton({ icon: Icon, label }) {
+  return (
+    <button type="button" className="group/action relative grid size-8 place-items-center rounded-full text-white/48 transition hover:bg-white/[.08] hover:text-white" aria-label={label}>
+      <Icon size={16} strokeWidth={2.4} />
+      <span className="pointer-events-none absolute left-1/2 top-[calc(100%+7px)] z-30 -translate-x-1/2 whitespace-nowrap rounded-md bg-white px-2 py-1 text-[10px] font-black text-black opacity-0 shadow-xl transition group-hover/action:opacity-100">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function SearchPage({ initialQuery = '', onCreateFromQuery }) {
   const [activeTag, setActiveTag] = useState('All');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
+  const trimmedQuery = query.trim();
   const visibleVideos = filterCommunityVideos({ activeTag, query });
+
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   return (
     <section className="min-h-screen px-2 pb-20 pt-24">
@@ -1349,7 +1449,7 @@ function SearchPage() {
             <Search size={14} /> Search
           </span>
           <h1 className="text-[clamp(38px,6vw,74px)] font-black leading-[0.95] tracking-[-0.06em] text-white">검색</h1>
-          <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-mvnt-muted sm:text-base">커뮤니티 댄스, 음악 소스, 루프 스타일을 빠르게 찾고 새 작업의 레퍼런스로 사용할 수 있습니다.</p>
+          <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-mvnt-muted sm:text-base">커뮤니티 댄스, 음악 소스, 루프 스타일을 빠르게 찾고, 원하는 결과가 없으면 같은 입력으로 바로 새 춤을 만들 수 있습니다.</p>
         </div>
 
         <div className="sticky top-16 z-20 mb-6 rounded-[26px] border border-white/10 bg-neutral-950/88 p-3 shadow-[0_18px_70px_rgba(0,0,0,.34)] backdrop-blur-2xl">
@@ -1362,6 +1462,19 @@ function SearchPage() {
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
+          {trimmedQuery && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-mvnt-orange/20 bg-mvnt-orange/[.08] px-4 py-3">
+              <span className="text-sm font-extrabold text-white">“{trimmedQuery}” 검색 중</span>
+              <button
+                type="button"
+                onClick={() => onCreateFromQuery?.(trimmedQuery)}
+                className="inline-flex min-h-9 items-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-4 text-xs font-black text-white shadow-[0_12px_30px_rgba(255,138,0,.18)] transition hover:brightness-110"
+              >
+                <Wand2 size={15} />
+                이 검색어로 춤 생성
+              </button>
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {communityTags.map((tag) => {
               const selected = activeTag === tag;
@@ -1379,7 +1492,15 @@ function SearchPage() {
           {visibleVideos.map((video, index) => <CommunityVideoCard key={`${video.src}-${index}`} video={video} index={index} />)}
         </div>
         {visibleVideos.length === 0 && (
-          <div className="rounded-[28px] border border-white/10 bg-white/[.035] px-6 py-14 text-center text-sm font-bold text-mvnt-muted">검색 결과가 없습니다.</div>
+          <div className="rounded-[28px] border border-white/10 bg-white/[.035] px-6 py-14 text-center text-sm font-bold text-mvnt-muted">
+            검색 결과가 없습니다.
+            {trimmedQuery && (
+              <button type="button" onClick={() => onCreateFromQuery?.(trimmedQuery)} className="mx-auto mt-5 flex min-h-10 items-center gap-2 rounded-full bg-white px-4 text-xs font-black text-black transition hover:bg-mvnt-yellow">
+                <Wand2 size={15} />
+                “{trimmedQuery}”로 새 춤 만들기
+              </button>
+            )}
+          </div>
         )}
       </div>
     </section>
