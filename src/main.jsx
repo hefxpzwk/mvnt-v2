@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
@@ -49,6 +50,33 @@ import {
   Sparkles
 } from 'lucide-react';
 import './index.css';
+
+
+const browserChromeTheme = '#050505';
+
+function setBrowserChromeTheme(color = browserChromeTheme) {
+  if (typeof document === 'undefined') return;
+
+  const upsertMeta = (selector, attributes) => {
+    let element = document.head.querySelector(selector);
+    if (!element) {
+      element = document.createElement('meta');
+      document.head.appendChild(element);
+    }
+    Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+  };
+
+  upsertMeta('meta[name="theme-color"]:not([media])', { name: 'theme-color', content: color });
+  upsertMeta('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]', { name: 'theme-color', media: '(prefers-color-scheme: dark)', content: color });
+  upsertMeta('meta[name="theme-color"][media="(prefers-color-scheme: light)"]', { name: 'theme-color', media: '(prefers-color-scheme: light)', content: color });
+  upsertMeta('meta[name="color-scheme"]', { name: 'color-scheme', content: 'dark' });
+  upsertMeta('meta[name="apple-mobile-web-app-status-bar-style"]', { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' });
+  upsertMeta('meta[name="msapplication-navbutton-color"]', { name: 'msapplication-navbutton-color', content: color });
+
+  document.documentElement.style.backgroundColor = color;
+  document.documentElement.style.colorScheme = 'dark';
+  document.body.style.backgroundColor = color;
+}
 
 const sideNav = [
   { id: 'Home', label: '홈', icon: House },
@@ -350,6 +378,10 @@ function App() {
   const mainRef = useRef(null);
 
   useEffect(() => {
+    setBrowserChromeTheme();
+  }, []);
+
+  useEffect(() => {
     const syncFromHash = () => setActivePage(readPageFromHash());
     window.addEventListener('hashchange', syncFromHash);
     window.addEventListener('popstate', syncFromHash);
@@ -480,7 +512,7 @@ function App() {
           ) : activePage === 'Dance' ? (
             <DancePage />
           ) : (
-            <HomePage musicSource={musicSource} onMusicSourceChange={setMusicSource} />
+            <HomePage musicSource={musicSource} onMusicSourceChange={setMusicSource} sidebarExpanded={sidebarExpanded} />
           )}
         </div>
       </main>
@@ -502,7 +534,7 @@ function TopHeader({ activePage, sidebarExpanded, onNavigate, onSearchSubmit, on
     <header className="pointer-events-none fixed inset-x-0 top-0 z-40 border-b border-white/[.075] bg-[#070707]/28 shadow-[0_18px_60px_rgba(0,0,0,.16)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#070707]/22">
       <form onSubmit={submitSearch} className={`pointer-events-none absolute inset-y-0 right-[300px] hidden items-center justify-center transition-[left] duration-300 ease-[cubic-bezier(.22,1,.36,1)] md:flex lg:right-[330px] ${sidebarExpanded ? 'left-[236px]' : 'left-[88px]'}`} role="search" aria-label="전역 검색">
         <div className={`pointer-events-auto group flex h-10 w-[min(420px,100%)] items-center overflow-hidden rounded-full border bg-black/24 text-mvnt-muted shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_14px_42px_rgba(0,0,0,.22)] backdrop-blur-2xl transition focus-within:border-mvnt-orange/55 focus-within:bg-black/34 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_16px_52px_rgba(255,138,0,.14)] ${activePage === 'Search' ? 'border-mvnt-orange/35' : 'border-white/14'}`}>
-            <button type="submit" className="ml-3 grid size-7 shrink-0 place-items-center rounded-full text-white/62 transition hover:bg-white/[.12] hover:text-white group-focus-within:text-white/86" aria-label="검색">
+            <button type="submit" className="ml-3 grid size-6 shrink-0 place-items-center rounded-full text-white/62 transition hover:bg-white/[.12] hover:text-white group-focus-within:text-white/86" aria-label="검색">
               <Search size={17} strokeWidth={2.65} />
             </button>
             <input
@@ -525,13 +557,13 @@ function TopHeader({ activePage, sidebarExpanded, onNavigate, onSearchSubmit, on
 
       <div className={`pointer-events-auto relative z-10 flex h-12 w-full items-center justify-end gap-4 py-0 pr-5 transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
         <div className="flex shrink-0 items-center gap-1.5">
-          <button type="button" onClick={() => onNavigate('Credits')} className="hidden min-h-9 items-center rounded-full px-3.5 text-xs font-black transition hover:bg-white/[.04] sm:inline-flex">
+          <button type="button" onClick={() => onNavigate('Credits')} className="hidden min-h-9 items-center rounded-full px-3 text-[11px] font-black transition hover:bg-white/[.04] sm:inline-flex">
             <span className="bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-500 bg-clip-text text-transparent">
               <span className="mr-1.5 text-[15px] leading-none">◇</span>구독
             </span>
           </button>
-          <button type="button" className="hidden min-h-9 items-center rounded-full px-3.5 text-xs font-black text-mvnt-muted transition hover:bg-white/[.04] hover:text-mvnt-text md:inline-flex">API 플랫폼</button>
-          <button type="button" className="group/tutorial relative grid size-9 place-items-center rounded-full text-mvnt-muted transition hover:bg-white/[.06] hover:text-mvnt-text" aria-label="Tutorial">
+          <button type="button" className="hidden min-h-9 items-center rounded-full px-3 text-[11px] font-black text-mvnt-muted transition hover:bg-white/[.04] hover:text-mvnt-text md:inline-flex">API 플랫폼</button>
+          <button type="button" className="group/tutorial relative grid size-7 place-items-center rounded-full text-mvnt-muted transition hover:bg-white/[.06] hover:text-mvnt-text" aria-label="Tutorial">
             <HelpCircle size={18} strokeWidth={2.5} />
             <span className="pointer-events-none absolute top-[calc(100%+8px)] left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-lg border border-white/10 bg-neutral-950 px-2.5 py-1 text-xs font-black text-mvnt-text opacity-0 shadow-2xl transition-opacity group-hover/tutorial:opacity-100">
               튜토리얼
@@ -539,7 +571,7 @@ function TopHeader({ activePage, sidebarExpanded, onNavigate, onSearchSubmit, on
           </button>
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
-              <button type="button" className="grid size-9 place-items-center rounded-full text-mvnt-muted outline-none transition hover:bg-white/[.06] hover:text-mvnt-text focus-visible:bg-white/[.06]" aria-label="Change language" title="언어 변경">
+              <button type="button" className="grid size-7 place-items-center rounded-full text-mvnt-muted outline-none transition hover:bg-white/[.06] hover:text-mvnt-text focus-visible:bg-white/[.06]" aria-label="Change language" title="언어 변경">
                 <Languages size={18} strokeWidth={2.5} />
               </button>
             </DropdownMenu.Trigger>
@@ -548,10 +580,10 @@ function TopHeader({ activePage, sidebarExpanded, onNavigate, onSearchSubmit, on
                 <DropdownMenu.Item className="flex min-h-9 cursor-pointer items-center justify-between rounded-lg px-2.5 text-xs font-black outline-none hover:bg-white/10">
                   한국어 <span className="text-mvnt-orange">✓</span>
                 </DropdownMenu.Item>
-                <DropdownMenu.Item className="flex min-h-9 cursor-pointer items-center rounded-lg px-2.5 text-xs font-bold text-mvnt-muted outline-none hover:bg-white/10 hover:text-mvnt-text">
+                <DropdownMenu.Item className="flex min-h-9 cursor-pointer items-center rounded-lg px-2.5 text-[11px] font-bold text-mvnt-muted outline-none hover:bg-white/10 hover:text-mvnt-text">
                   English
                 </DropdownMenu.Item>
-                <DropdownMenu.Item className="flex min-h-9 cursor-pointer items-center rounded-lg px-2.5 text-xs font-bold text-mvnt-muted outline-none hover:bg-white/10 hover:text-mvnt-text">
+                <DropdownMenu.Item className="flex min-h-9 cursor-pointer items-center rounded-lg px-2.5 text-[11px] font-bold text-mvnt-muted outline-none hover:bg-white/10 hover:text-mvnt-text">
                   日本語
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
@@ -559,16 +591,16 @@ function TopHeader({ activePage, sidebarExpanded, onNavigate, onSearchSubmit, on
           </DropdownMenu.Root>
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
-              <button type="button" className="grid size-9 place-items-center rounded-full outline-none transition hover:bg-white/[.06] focus-visible:bg-white/[.06]" aria-label="Profile">
-                <span className="grid size-8 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-1 ring-white/15">J</span>
+              <button type="button" className="grid size-7 place-items-center rounded-full outline-none transition hover:bg-white/[.06] focus-visible:bg-white/[.06]" aria-label="Profile">
+                <span className="grid size-7 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-1 ring-white/15">J</span>
               </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
               <DropdownMenu.Content side="bottom" align="end" sideOffset={8} className="z-50 w-[200px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 p-0 text-mvnt-text shadow-2xl">
-                <div className="flex items-center gap-2.5 border-b border-white/10 px-3 py-2">
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-xs font-black text-black">J</span>
+                <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-xs font-black text-black">J</span>
                   <span className="min-w-0">
-                    <strong className="block truncate text-[12px] font-black">Jiwon Kim</strong>
+                    <strong className="block truncate text-[10px] font-black">Jiwon Kim</strong>
                     <small className="mt-0.5 block truncate text-[10px] font-bold text-mvnt-muted">jiwon@mvnt.studio</small>
                   </span>
                 </div>
@@ -603,7 +635,7 @@ function Sidebar({ open, textVisible, targetOpen, activePage, onNavigate, onTogg
             if (targetOpen) onNavigate('Home');
             else onToggle();
           }}
-          className="group/brand relative isolate grid size-10 shrink-0 place-items-center overflow-hidden rounded-[14px] transition-transform duration-200 hover:scale-[1.02]"
+          className="group/brand relative isolate grid size-10 shrink-0 place-items-center overflow-hidden rounded-[12px] transition-transform duration-200 hover:scale-[1.02]"
           aria-label={targetOpen ? '홈으로 이동' : '사이드바 열기'}
           title={targetOpen ? '홈으로 이동' : '사이드바 열기'}
         >
@@ -644,13 +676,13 @@ function Sidebar({ open, textVisible, targetOpen, activePage, onNavigate, onTogg
       <div className="-mx-4 mt-3 border-t border-white/10 bg-black/20">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <button type="button" className="group/user flex min-h-[54px] w-full items-center gap-2 px-4 py-1.5 text-left text-mvnt-text outline-none transition-colors hover:bg-white/[.07] focus-visible:bg-white/[.07]" aria-label="Open profile menu">
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl">
+            <button type="button" className="group/user flex min-h-[54px] w-full items-center gap-2 px-4 py-2.5 text-left text-mvnt-text outline-none transition-colors hover:bg-white/[.07] focus-visible:bg-white/[.07]" aria-label="Open profile menu">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl">
                 <span className="grid size-6 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow font-black text-xs text-black">J</span>
               </span>
               {textVisible && (
                 <>
-                  <span className="min-w-0 flex-1 overflow-hidden transition-opacity duration-150"><strong className="block truncate text-[12px] font-black">Jiwon Kim</strong><small className="block truncate text-[10px] font-bold text-mvnt-muted">jiwon@mvnt.studio</small></span>
+                  <span className="min-w-0 flex-1 overflow-hidden transition-opacity duration-150"><strong className="block truncate text-[10px] font-black">Jiwon Kim</strong><small className="block truncate text-[10px] font-bold text-mvnt-muted">jiwon@mvnt.studio</small></span>
                   <Settings size={14} className="text-white/28 transition-colors duration-150 group-hover/user:text-white/60" />
                 </>
               )}
@@ -674,7 +706,7 @@ function DropOverlay() {
   return (
     <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center bg-black/72 p-6 backdrop-blur-xl">
       <div className="grid w-[min(640px,calc(100vw-48px))] place-items-center rounded-[36px] border-2 border-dashed border-mvnt-orange/80 bg-neutral-950/90 px-8 py-14 text-center shadow-[0_0_90px_rgba(255,138,0,.32)]">
-        <div className="mb-6 grid size-20 place-items-center rounded-[28px] bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-black"><UploadCloud size={38} strokeWidth={2.5} /></div>
+        <div className="mb-6 grid size-20 place-items-center rounded-[18px] bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-black"><UploadCloud size={38} strokeWidth={2.5} /></div>
         <strong className="text-[clamp(34px,6vw,68px)] font-black leading-[1.02] tracking-[-0.02em]">Drop your music</strong>
         <span className="mt-4 max-w-md text-sm font-bold text-mvnt-muted sm:text-base">음악 링크나 파일을 놓으면 바로 임베드/프리뷰 카드로 표시됩니다.</span>
       </div>
@@ -682,7 +714,7 @@ function DropOverlay() {
   );
 }
 
-function HomePage({ musicSource, onMusicSourceChange }) {
+function HomePage({ musicSource, onMusicSourceChange, sidebarExpanded }) {
   const [mode, setMode] = useState('YouTube');
   const [status, setStatus] = useState('Generate');
   const [headlineProgress, setHeadlineProgress] = useState(100);
@@ -788,7 +820,7 @@ function HomePage({ musicSource, onMusicSourceChange }) {
           <p className="mx-auto mt-4 max-w-2xl text-base font-semibold leading-relaxed text-mvnt-muted sm:text-lg">음악 파일을 드롭하거나 링크를 붙여넣으면, 바로 움직임 초안으로 변환할 준비를 시작합니다.</p>
         </div>
 
-          <section className="stable-composer overflow-hidden rounded-[30px] border border-white/10 bg-neutral-950">
+          <section className="stable-composer overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950">
             <div className="flex gap-1 overflow-hidden border-b border-white/10 bg-[#111]/92 px-3 pt-2">
               {modes.map(({ name, icon: Icon }) => {
                 const selected = mode === name;
@@ -797,10 +829,10 @@ function HomePage({ musicSource, onMusicSourceChange }) {
                     type="button"
                     key={name}
                     onClick={() => setMode(name)}
-                    className={`relative inline-flex min-h-12 shrink-0 select-none items-center gap-2 rounded-t-[20px] px-5 text-sm font-black transition-colors ${selected ? 'bg-black text-mvnt-text shadow-[0_-10px_34px_rgba(255,138,0,.12)] after:absolute after:left-1/2 after:-bottom-[7px] after:size-3 after:-translate-x-1/2 after:rotate-45 after:border-b after:border-r after:border-white/10 after:bg-black' : 'text-mvnt-muted/70 hover:bg-white/[.035] hover:text-mvnt-text'}`}
+                    className={`relative inline-flex min-h-12 shrink-0 select-none items-center gap-2 rounded-t-[20px] px-5 text-xs font-black transition-colors ${selected ? 'bg-black text-mvnt-text shadow-[0_-10px_34px_rgba(255,138,0,.12)] after:absolute after:left-1/2 after:-bottom-[7px] after:size-3 after:-translate-x-1/2 after:rotate-45 after:border-b after:border-r after:border-white/10 after:bg-black' : 'text-mvnt-muted/70 hover:bg-white/[.035] hover:text-mvnt-text'}`}
                     aria-current={selected ? 'true' : undefined}
                   >
-                    <Icon size={18} strokeWidth={selected ? 2.8 : 2.35} />
+                    <Icon size={14} strokeWidth={selected ? 2.8 : 2.35} />
                     {name}
                   </button>
                 );
@@ -849,7 +881,7 @@ function HomePage({ musicSource, onMusicSourceChange }) {
                 )}
               </div>
 
-              <button type="button" onClick={generate} className="justify-self-end inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-3.5 text-xs font-black text-white shadow-[0_12px_32px_rgba(255,138,0,.18)]">
+              <button type="button" onClick={generate} className="justify-self-end inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-3 text-[11px] font-black text-white shadow-[0_12px_32px_rgba(255,138,0,.18)]">
                 <span>{status}</span>
                 <span className="h-3.5 w-px bg-white/26" aria-hidden="true" />
                 <span className="inline-flex items-center gap-1.5 text-white/86" title="Estimated tokens used">
@@ -861,7 +893,7 @@ function HomePage({ musicSource, onMusicSourceChange }) {
           </section>
         </div>
       </div>
-      <CommunityExamples />
+      <CommunityExamples sidebarExpanded={sidebarExpanded} />
     </section>
   );
 }
@@ -956,7 +988,7 @@ function SubscriptionPage({ onClose }) {
       <button
         type="button"
         onClick={onClose}
-        className="fixed right-6 top-6 z-20 grid size-11 place-items-center rounded-[18px] bg-neutral-950/70 text-mvnt-muted shadow-[0_16px_44px_rgba(0,0,0,.32)] backdrop-blur-2xl transition hover:bg-white/[.06] hover:text-mvnt-text"
+        className="fixed right-6 top-6 z-20 grid size-11 place-items-center rounded-[12px] bg-neutral-950/70 text-mvnt-muted shadow-[0_16px_44px_rgba(0,0,0,.32)] backdrop-blur-2xl transition hover:bg-white/[.06] hover:text-mvnt-text"
         aria-label="요금제 페이지 닫기"
       >
         <X size={24} strokeWidth={2.1} />
@@ -964,7 +996,7 @@ function SubscriptionPage({ onClose }) {
 
       <section className="relative mx-auto flex min-h-screen w-[min(980px,calc(100vw-40px))] flex-col items-center justify-center px-4 py-20">
         <div className="mb-7 text-center">
-          <h1 className="text-[clamp(28px,3vw,42px)] font-black tracking-[-0.055em] text-mvnt-text">플랜을 선택하세요</h1>
+          <h1 className="text-[clamp(21px,2.25vw,29px)] font-black tracking-[-0.055em] text-mvnt-text">플랜을 선택하세요</h1>
         </div>
 
         <div className="mb-8 grid h-[40px] w-[min(340px,100%)] grid-cols-2 rounded-full border border-white/10 bg-white/[.055] p-1 shadow-[0_18px_60px_rgba(0,0,0,.25)] backdrop-blur-xl" role="tablist" aria-label="Billing period">
@@ -1003,7 +1035,7 @@ function SubscriptionPage({ onClose }) {
 function CreditsFaq() {
   return (
     <section className="mt-24 w-full" aria-label="FAQ">
-      <div className="mb-6 flex items-end justify-between gap-4">
+      <div className="mb-6 flex items-end justify-between gap-3">
         <div>
           <h2 className="text-[22px] font-black tracking-[-0.04em] text-mvnt-text">FAQ</h2>
           <p className="mt-1 text-[11px] font-bold text-mvnt-muted">공식 Credits 페이지 기준 안내입니다.</p>
@@ -1053,7 +1085,7 @@ function PlanCard({ plan, billingPeriod }) {
       : 'border-white/12 bg-white/[.035] text-mvnt-text hover:border-mvnt-orange/60 hover:bg-white/[.07]';
 
   return (
-    <article className={`relative flex min-h-[410px] flex-col overflow-hidden rounded-[24px] border px-6 py-6 backdrop-blur-xl transition ${cardClass}`}>
+    <article className={`relative flex min-h-[410px] flex-col overflow-hidden rounded-[24px] border px-4 py-4 backdrop-blur-xl transition ${cardClass}`}>
       {isBasic && <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-mvnt-orange/50 to-transparent" />}
       {isCreator && (
         <>
@@ -1062,7 +1094,7 @@ function PlanCard({ plan, billingPeriod }) {
         </>
       )}
       {plan.recommended && (
-        <span className={`absolute right-4 top-4 rounded-full px-2.5 py-1 text-[10px] font-black ${isCreator ? 'bg-white text-black' : 'bg-mvnt-orange/14 text-mvnt-yellow ring-1 ring-mvnt-orange/24'}`}>추천</span>
+        <span className={`absolute right-3 top-3 rounded-full px-2 py-0.5 text-[9px] font-black ${isCreator ? 'bg-white text-black' : 'bg-mvnt-orange/14 text-mvnt-yellow ring-1 ring-mvnt-orange/24'}`}>추천</span>
       )}
 
       <div className="relative pr-14">
@@ -1079,12 +1111,12 @@ function PlanCard({ plan, billingPeriod }) {
           <span className={`text-[48px] font-black leading-none tracking-[-0.06em] ${isCreator ? 'bg-gradient-to-r from-white via-mvnt-yellow to-mvnt-orange bg-clip-text text-transparent' : 'text-white'}`}>{price.replace('$', '')}</span>
           {plan.period && <span className="pb-1.5 text-[11px] font-bold text-mvnt-muted">{plan.period}</span>}
         </div>
-        <p className={`mt-4 rounded-xl px-3 py-2.5 text-[11px] font-black ${isCreator ? 'bg-white/[.07] text-white/82 ring-1 ring-white/10' : isBasic ? 'bg-mvnt-orange/[.055] text-white/74 ring-1 ring-mvnt-orange/12' : 'bg-white/[.025] text-white/54 ring-1 ring-white/[.06]'}`}>{highlight}</p>
+        <p className={`mt-4 rounded-xl px-3 py-2.5 text-[10px] font-black ${isCreator ? 'bg-white/[.07] text-white/82 ring-1 ring-white/10' : isBasic ? 'bg-mvnt-orange/[.055] text-white/74 ring-1 ring-mvnt-orange/12' : 'bg-white/[.025] text-white/54 ring-1 ring-white/[.06]'}`}>{highlight}</p>
       </div>
 
-      <ul className="relative mt-6 flex flex-1 flex-col gap-2.5">
+      <ul className="relative mt-6 flex flex-1 flex-col gap-2">
         {plan.features.map((feature) => (
-          <li key={feature} className={`grid grid-cols-[18px_1fr] items-start gap-2.5 text-[12px] font-bold leading-snug ${isCreator ? 'text-white/82' : isBasic ? 'text-white/72' : 'text-white/52'}`}>
+          <li key={feature} className={`grid grid-cols-[18px_1fr] items-start gap-2 text-[12px] font-bold leading-snug ${isCreator ? 'text-white/82' : isBasic ? 'text-white/72' : 'text-white/52'}`}>
             <span className={`mt-0.5 grid size-4 place-items-center rounded-full ${checkClass}`}><Check size={11} strokeWidth={3} /></span>
             <span>{feature}</span>
           </li>
@@ -1094,7 +1126,7 @@ function PlanCard({ plan, billingPeriod }) {
       <button
         type="button"
         disabled={plan.current}
-        className={`relative mt-6 min-h-[40px] rounded-full border px-4 text-xs font-black transition ${actionClass}`}
+        className={`relative mt-6 min-h-[34px] rounded-full border px-4 text-xs font-black transition ${actionClass}`}
       >
         {plan.action}
       </button>
@@ -1115,7 +1147,7 @@ function AttachmentPreview({ description, metadata, onClear }) {
 
   return (
     <Wrapper {...wrapperProps} className="flex min-w-0 max-w-[520px] shrink items-center gap-3 rounded-xl border border-white/10 bg-white/[.055] px-3 py-2 text-left no-underline shadow-[0_8px_22px_rgba(0,0,0,.22)] transition hover:border-white/18 hover:bg-white/[.075]">
-      <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-black">
+      <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-black">
         {image ? (
           <img src={image} alt="" className="size-full object-cover" />
         ) : (
@@ -1124,10 +1156,10 @@ function AttachmentPreview({ description, metadata, onClear }) {
       </span>
 
       <div className="min-w-0 max-w-[410px]">
-        <h3 className="truncate text-sm font-black tracking-[-0.02em] text-mvnt-text">
+        <h3 className="truncate text-xs font-black tracking-[-0.02em] text-mvnt-text">
           {title}
         </h3>
-        <p className="mt-0.5 truncate text-xs font-bold text-mvnt-muted">
+        <p className="mt-0.5 truncate text-[11px] font-bold text-mvnt-muted">
           {name}
         </p>
       </div>
@@ -1139,7 +1171,7 @@ function AttachmentPreview({ description, metadata, onClear }) {
           event.stopPropagation();
           onClear();
         }}
-        className="grid size-7 shrink-0 place-items-center rounded-md text-mvnt-muted transition hover:bg-white/10 hover:text-mvnt-text"
+        className="grid size-6 shrink-0 place-items-center rounded-md text-mvnt-muted transition hover:bg-white/10 hover:text-mvnt-text"
         aria-label="Clear attachment"
       >
         <X size={14} />
@@ -1152,28 +1184,28 @@ function AttachmentPreview({ description, metadata, onClear }) {
 
 function CommunityVideoCard({ video, index }) {
   return (
-    <article className="group relative isolate overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950 shadow-[0_24px_70px_rgba(0,0,0,.35)]">
+    <article className="group relative isolate overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950 shadow-[0_24px_70px_rgba(0,0,0,.35)]">
       <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
       <video className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} autoPlay muted loop playsInline preload={index < 3 ? 'auto' : 'metadata'} />
       <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/78 to-transparent p-4 pb-12">
           <div className="flex items-center gap-2">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-2 ring-white/20">{video.creator.slice(0, 1).toUpperCase()}</span>
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-2 ring-white/20">{video.creator.slice(0, 1).toUpperCase()}</span>
             <span className="min-w-0 truncate text-xs font-black text-white drop-shadow">{video.creator}</span>
           </div>
         </div>
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/82 to-transparent p-4 pt-20">
           <div className="flex items-end justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-white/90 via-mvnt-yellow to-mvnt-orange text-black shadow-[0_10px_28px_rgba(0,0,0,.45)]">
+              <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-white/90 via-mvnt-yellow to-mvnt-orange text-black shadow-[0_10px_28px_rgba(0,0,0,.45)]">
                 <span className="text-lg font-black leading-none">♪</span>
               </span>
               <div className="min-w-0">
-                <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-white/54">Song</span>
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-white/54">Song</span>
                 <h3 className="truncate text-base font-black tracking-[-0.03em] text-white">{video.title}</h3>
               </div>
             </div>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/12 px-2.5 py-1.5 text-xs font-black text-white/90 backdrop-blur-md"><Heart size={12} fill="currentColor" /> {video.likes}</span>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/12 px-2 py-1 text-xs font-black text-white/90 backdrop-blur-md"><Heart size={12} fill="currentColor" /> {video.likes}</span>
           </div>
         </div>
       </div>
@@ -1223,8 +1255,8 @@ function MusicIdentityOverlay({ reel, index, expanded, onExpandedChange }) {
       onFocus={() => onExpandedChange(true)}
       onBlur={() => onExpandedChange(false)}
     >
-      <div className={`music-source-art absolute right-0 top-0 grid size-24 shrink-0 place-items-center overflow-hidden rounded-[22px] text-white shadow-[0_18px_44px_rgba(0,0,0,.42)] ring-1 ring-white/15 transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expanded ? '-translate-x-[170px] scale-[1.035]' : 'translate-x-0 scale-100'}`}>
-        <div className="absolute left-4 top-4 z-10 flex items-center gap-1.5 text-[11px] font-black leading-none">
+      <div className={`music-source-art absolute right-0 top-0 grid size-24 shrink-0 place-items-center overflow-hidden rounded-[18px] text-white shadow-[0_18px_44px_rgba(0,0,0,.42)] ring-1 ring-white/15 transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expanded ? '-translate-x-[170px] scale-[1.035]' : 'translate-x-0 scale-100'}`}>
+        <div className="absolute left-4 top-4 z-10 flex items-center gap-1.5 text-[10px] font-black leading-none">
           <span className="grid h-4 w-6 place-items-center rounded-[4px] bg-white text-[hsl(var(--music-hue)_80%_34%)]"><Play size={8} fill="currentColor" strokeWidth={3} /></span>
           <span>YouTube</span>
         </div>
@@ -1235,7 +1267,7 @@ function MusicIdentityOverlay({ reel, index, expanded, onExpandedChange }) {
           <span className="h-6 w-2 rounded-full bg-white" />
           <span className="h-8 w-2 rounded-full bg-white" />
         </div>
-        <span className="music-source-note relative z-20 grid size-10 place-items-center rounded-full bg-white/16 text-xl font-black text-white backdrop-blur-sm">♪</span>
+        <span className="music-source-note relative z-20 grid size-7 place-items-center rounded-full bg-white/16 text-xl font-black text-white backdrop-blur-sm">♪</span>
       </div>
       <strong className={`music-hover-title pointer-events-none absolute left-[114px] top-1/2 w-[min(430px,calc(50vw-284px))] -translate-y-1/2 truncate text-left text-[clamp(30px,3.4vw,52px)] font-black leading-none tracking-[-0.075em] text-white drop-shadow-[0_5px_18px_rgba(0,0,0,.82)] transition duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expanded ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'}`}>
         {reel.title}
@@ -1308,14 +1340,14 @@ function ProjectsPage() {
           <div>
             <h1 className="text-[clamp(30px,4vw,46px)] font-black leading-none tracking-[-0.055em] text-white">프로젝트</h1>
           </div>
-          <button type="button" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-black text-black transition hover:scale-[1.02]">
+          <button type="button" className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-white px-3 text-[11px] font-black text-black transition hover:scale-[1.02]">
             <Wand2 size={16} /> 만들기
           </button>
         </div>
 
         <div>
           <div className="px-0 pt-3">
-            <div className="flex gap-7 text-sm font-black">
+            <div className="flex gap-7 text-xs font-black">
               {projectFilters.map((filter) => {
                 const selected = activeProjectFilter === filter;
                 return (
@@ -1335,7 +1367,7 @@ function ProjectsPage() {
           </div>
 
           <div className="flex flex-col gap-3 border-b border-white/10 py-4 lg:flex-row lg:items-center lg:justify-between">
-            <button type="button" className="inline-flex min-h-9 w-fit items-center gap-2 rounded-full border border-white/12 px-3.5 text-xs font-black text-mvnt-muted transition hover:bg-white/[.06] hover:text-white">
+            <button type="button" className="inline-flex min-h-9 w-fit items-center gap-2 rounded-full border border-white/12 px-3 text-[11px] font-black text-mvnt-muted transition hover:bg-white/[.06] hover:text-white">
               <SlidersHorizontal size={15} /> 필터
             </button>
             <label className="flex min-h-10 w-full items-center gap-2 rounded-md border border-white/10 bg-white/[.025] px-3 text-mvnt-muted lg:w-[360px]">
@@ -1344,7 +1376,7 @@ function ProjectsPage() {
             </label>
           </div>
 
-          <div className="hidden grid-cols-[minmax(430px,1fr)_130px_120px_100px_110px] gap-4 border-b border-white/10 py-3 text-[11px] font-black uppercase tracking-[0.12em] text-white/38 lg:grid">
+          <div className="hidden grid-cols-[minmax(430px,1fr)_130px_120px_100px_110px] gap-4 border-b border-white/10 py-3 text-[10px] font-black uppercase tracking-[0.12em] text-white/38 lg:grid">
             <span>동영상</span>
             <span>구분</span>
             <span>공개 여부</span>
@@ -1358,7 +1390,7 @@ function ProjectsPage() {
             ))}
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-white/10 py-3 text-xs font-bold text-mvnt-muted sm:flex-row sm:items-center sm:justify-end">
+          <div className="flex flex-col gap-3 border-t border-white/10 py-3 text-[11px] font-bold text-mvnt-muted sm:flex-row sm:items-center sm:justify-end">
             <label className="flex items-center gap-2">
               페이지당 행 수:
               <select value={rowsPerPage} onChange={changeRowsPerPage} className="rounded-md border border-white/10 bg-neutral-950 px-2 py-1 font-black text-white outline-none">
@@ -1367,8 +1399,8 @@ function ProjectsPage() {
             </label>
             <span className="sm:ml-5">{rangeStart}-{rangeEnd} / {visibleWorks.length}</span>
             <div className="flex items-center gap-1 sm:ml-3">
-              <button type="button" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="grid size-8 place-items-center rounded-full text-white/70 transition hover:bg-white/[.06] disabled:cursor-default disabled:text-white/20" aria-label="이전 페이지"><ChevronLeft size={18} /></button>
-              <button type="button" disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="grid size-8 place-items-center rounded-full text-white/70 transition hover:bg-white/[.06] disabled:cursor-default disabled:text-white/20" aria-label="다음 페이지"><ChevronRight size={18} /></button>
+              <button type="button" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="grid size-7 place-items-center rounded-full text-white/70 transition hover:bg-white/[.06] disabled:cursor-default disabled:text-white/20" aria-label="이전 페이지"><ChevronLeft size={18} /></button>
+              <button type="button" disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="grid size-7 place-items-center rounded-full text-white/70 transition hover:bg-white/[.06] disabled:cursor-default disabled:text-white/20" aria-label="다음 페이지"><ChevronRight size={18} /></button>
             </div>
           </div>
         </div>
@@ -1405,7 +1437,7 @@ function ProjectContentRow({ work, index, onUpdateVisibility }) {
       onFocus={startPreview}
       onBlur={stopPreview}
     >
-      <div className="grid min-w-0 grid-cols-[150px_1fr] gap-4">
+      <div className="grid min-w-0 grid-cols-[150px_1fr] gap-3">
         <div className="relative isolate aspect-video overflow-hidden rounded-lg bg-black ring-1 ring-white/10">
           <video ref={videoRef} className="size-full object-cover" src={work.src} muted loop playsInline preload="metadata" />
           <div className="pointer-events-none absolute inset-0 bg-black/0 transition group-hover:bg-black/10" />
@@ -1415,8 +1447,8 @@ function ProjectContentRow({ work, index, onUpdateVisibility }) {
           <span className="absolute bottom-1.5 right-1.5 rounded bg-black/78 px-1.5 py-0.5 text-[10px] font-black text-white">{work.length}</span>
         </div>
         <div className="min-w-0 py-1">
-          <h2 className="truncate text-sm font-black text-white">{work.workTitle}</h2>
-          <p className="mt-1 line-clamp-2 text-xs font-bold leading-relaxed text-mvnt-muted">{work.source} 소스 · {work.style}</p>
+          <h2 className="truncate text-xs font-black text-white">{work.workTitle}</h2>
+          <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-relaxed text-mvnt-muted">{work.source} 소스 · {work.style}</p>
           <div className="mt-2 flex gap-1.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
             <ProjectActionButton icon={Pencil} label="수정" />
             <ProjectActionButton icon={Type} label="제목 수정" />
@@ -1425,14 +1457,14 @@ function ProjectContentRow({ work, index, onUpdateVisibility }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 lg:block"><span className="text-xs font-black text-white/38 lg:hidden">구분</span><span className="text-xs font-bold text-white/70">{work.kind}</span></div>
+      <div className="flex items-center justify-between gap-3 lg:block"><span className="text-xs font-black text-white/38 lg:hidden">구분</span><span className="text-[11px] font-bold text-white/70">{work.kind}</span></div>
       <div className="flex items-center justify-between gap-3 lg:block">
         <span className="text-xs font-black text-white/38 lg:hidden">공개 여부</span>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button
               type="button"
-              className="group/visibility inline-flex items-center gap-2 rounded-md px-1.5 py-1 text-xs font-bold text-white/70 outline-none transition hover:bg-white/[.06] hover:text-white focus-visible:bg-white/[.06]"
+              className="group/visibility inline-flex items-center gap-2 rounded-md px-1.5 py-1 text-[11px] font-bold text-white/70 outline-none transition hover:bg-white/[.06] hover:text-white focus-visible:bg-white/[.06]"
               aria-label={`공개 여부 수정: ${work.workTitle}`}
             >
               {work.visibility === '공개' ? (
@@ -1461,16 +1493,16 @@ function ProjectContentRow({ work, index, onUpdateVisibility }) {
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
       </div>
-      <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">길이</span>{work.length}</div>
-      <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">날짜</span>{work.updated}</div>
+      <div className="flex items-center justify-between gap-3 text-[11px] font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">길이</span>{work.length}</div>
+      <div className="flex items-center justify-between gap-3 text-[11px] font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">날짜</span>{work.updated}</div>
     </article>
   );
 }
 
 function ProjectActionButton({ icon: Icon, label }) {
   return (
-    <button type="button" className="group/action relative grid size-8 place-items-center rounded-full text-white/48 transition hover:bg-white/[.08] hover:text-white" aria-label={label}>
-      <Icon size={16} strokeWidth={2.4} />
+    <button type="button" className="group/action relative grid size-7 place-items-center rounded-full text-white/48 transition hover:bg-white/[.08] hover:text-white" aria-label={label}>
+      <Icon size={14} strokeWidth={2.4} />
       <span className="pointer-events-none absolute left-1/2 top-[calc(100%+7px)] z-30 -translate-x-1/2 whitespace-nowrap rounded-md bg-white px-2 py-1 text-[10px] font-black text-black opacity-0 shadow-xl transition group-hover/action:opacity-100">
         {label}
       </span>
@@ -1492,14 +1524,14 @@ function SearchPage({ initialQuery = '', onCreateFromQuery }) {
     <section className="min-h-screen px-2 pb-20 pt-24">
       <div className="mx-auto w-[min(1180px,100%)]">
         <div className="mb-8">
-          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.045] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-mvnt-muted">
+          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.045] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-mvnt-muted">
             <Search size={14} /> Search
           </span>
           <h1 className="text-[clamp(38px,6vw,74px)] font-black leading-[0.95] tracking-[-0.06em] text-white">검색</h1>
           <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-mvnt-muted sm:text-base">커뮤니티 댄스, 음악 소스, 루프 스타일을 빠르게 찾고, 원하는 결과가 없으면 같은 입력으로 바로 새 춤을 만들 수 있습니다.</p>
         </div>
 
-        <div className="sticky top-16 z-20 mb-6 rounded-[26px] border border-white/10 bg-neutral-950/88 p-3 shadow-[0_18px_70px_rgba(0,0,0,.34)] backdrop-blur-2xl">
+        <div className="sticky top-16 z-20 mb-6 rounded-[18px] border border-white/10 bg-neutral-950/88 p-3 shadow-[0_18px_70px_rgba(0,0,0,.34)] backdrop-blur-2xl">
           <label className="flex min-h-12 items-center gap-3 rounded-2xl bg-white/[.055] px-4 text-mvnt-muted">
             <Search size={19} />
             <input
@@ -1526,7 +1558,7 @@ function SearchPage({ initialQuery = '', onCreateFromQuery }) {
             {communityTags.map((tag) => {
               const selected = activeTag === tag;
               return (
-                <button key={tag} type="button" onClick={() => setActiveTag(tag)} className={`min-h-9 rounded-full border px-3.5 text-xs font-black transition ${selected ? 'border-white bg-white text-black' : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:text-white'}`}>
+                <button key={tag} type="button" onClick={() => setActiveTag(tag)} className={`min-h-9 rounded-full border px-3 text-[11px] font-black transition ${selected ? 'border-white bg-white text-black' : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:text-white'}`}>
                   #{tag}
                 </button>
               );
@@ -1539,7 +1571,7 @@ function SearchPage({ initialQuery = '', onCreateFromQuery }) {
           {visibleVideos.map((video, index) => <CommunityVideoCard key={`${video.src}-${index}`} video={video} index={index} />)}
         </div>
         {visibleVideos.length === 0 && (
-          <div className="rounded-[28px] border border-white/10 bg-white/[.035] px-6 py-14 text-center text-sm font-bold text-mvnt-muted">
+          <div className="rounded-[18px] border border-white/10 bg-white/[.035] px-6 py-14 text-center text-sm font-bold text-mvnt-muted">
             검색 결과가 없습니다.
             {trimmedQuery && (
               <button type="button" onClick={() => onCreateFromQuery?.(trimmedQuery)} className="mx-auto mt-5 flex min-h-10 items-center gap-2 rounded-full bg-white px-4 text-xs font-black text-black transition hover:bg-mvnt-yellow">
@@ -1619,7 +1651,7 @@ function ExplorePage() {
 
             <div className="absolute inset-x-0 bottom-0 z-10 p-4 pb-5">
               <div className="mb-2 flex items-center gap-2">
-                <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-sm font-black text-black ring-2 ring-white/20">
+                <span className="grid size-7 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-2 ring-white/20">
                   {reel.creator.slice(0, 1).toUpperCase()}
                 </span>
                 <div className="min-w-0">
@@ -1678,14 +1710,14 @@ function DancePage() {
       <div className="mx-auto w-[min(1120px,100%)]">
         <div className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_.9fr] lg:items-end">
           <div>
-            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.045] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.18em] text-mvnt-muted">
+            <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.045] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-mvnt-muted">
               <Footprints size={14} /> Dance Studio
             </span>
             <h1 className="text-[clamp(42px,7vw,88px)] font-black leading-[0.92] tracking-[-0.065em] text-white">댄스</h1>
             <p className="mt-4 max-w-2xl text-sm font-bold leading-relaxed text-mvnt-muted sm:text-base">음악에 맞는 안무 스타일, 무드, 움직임 강도를 선택해서 새로운 댄스 초안을 구성하는 전용 페이지입니다.</p>
           </div>
-          <div className="rounded-[30px] border border-white/10 bg-neutral-950 p-4 shadow-[0_22px_70px_rgba(0,0,0,.34)]">
-            <div className="aspect-video overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_50%_30%,rgba(255,138,0,.38),transparent_34%),linear-gradient(150deg,#242424,#070707)] p-5">
+          <div className="rounded-[18px] border border-white/10 bg-neutral-950 p-4 shadow-[0_22px_70px_rgba(0,0,0,.34)]">
+            <div className="aspect-video overflow-hidden rounded-[18px] bg-[radial-gradient(circle_at_50%_30%,rgba(255,138,0,.38),transparent_34%),linear-gradient(150deg,#242424,#070707)] p-5">
               <div className="flex h-full items-end justify-center gap-5">
                 {[0, 1, 2].map((item) => (
                   <span key={item} className="block w-10 rounded-full bg-gradient-to-b from-white to-white/24 shadow-[0_0_38px_rgba(255,138,0,.26)]" style={{ height: `${54 + item * 22}%` }} />
@@ -1694,11 +1726,11 @@ function DancePage() {
             </div>
             <div className="mt-4 flex items-center justify-between gap-3">
               <div>
-                <strong className="block text-sm font-black text-white">Motion preview</strong>
-                <span className="text-xs font-bold text-mvnt-muted">스타일 선택 후 프리뷰가 표시됩니다.</span>
+                <strong className="block text-xs font-black text-white">Motion preview</strong>
+                <span className="text-[11px] font-bold text-mvnt-muted">스타일 선택 후 프리뷰가 표시됩니다.</span>
               </div>
-              <button type="button" className="grid size-11 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-black">
-                <Play size={20} fill="currentColor" />
+              <button type="button" className="grid size-7 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-black">
+                <Play size={15} fill="currentColor" />
               </button>
             </div>
           </div>
@@ -1706,30 +1738,30 @@ function DancePage() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {danceStyles.map((style, index) => (
-            <article key={style.name} className="group relative isolate min-h-[260px] overflow-hidden rounded-[30px] border border-white/10 bg-neutral-950 p-5 shadow-[0_22px_70px_rgba(0,0,0,.3)]">
+            <article key={style.name} className="group relative isolate min-h-[220px] overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950 p-5 shadow-[0_22px_70px_rgba(0,0,0,.3)]">
               <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${style.tone} via-transparent to-transparent opacity-90 transition group-hover:opacity-100`} />
               <div className="relative flex h-full flex-col justify-between">
                 <span className="grid size-12 place-items-center rounded-2xl bg-white/[.07] text-mvnt-orange ring-1 ring-white/10">
                   <Footprints size={22} />
                 </span>
                 <div>
-                  <span className="text-[11px] font-black uppercase tracking-[0.16em] text-mvnt-muted">Style {String(index + 1).padStart(2, '0')}</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.16em] text-mvnt-muted">Style {String(index + 1).padStart(2, '0')}</span>
                   <h2 className="mt-2 text-2xl font-black tracking-[-0.05em] text-white">{style.name}</h2>
-                  <p className="mt-2 text-xs font-bold leading-relaxed text-mvnt-muted">{style.cue}</p>
-                  <span className="mt-4 inline-flex rounded-full bg-white/[.07] px-3 py-1.5 text-xs font-black text-white/74">{style.bpm}</span>
+                  <p className="mt-2 text-[11px] font-bold leading-relaxed text-mvnt-muted">{style.cue}</p>
+                  <span className="mt-4 inline-flex rounded-full bg-white/[.07] px-2 py-1 text-xs font-black text-white/74">{style.bpm}</span>
                 </div>
               </div>
             </article>
           ))}
         </div>
 
-        <div className="mt-6 rounded-[30px] border border-white/10 bg-white/[.035] p-5">
+        <div className="mt-6 rounded-[18px] border border-white/10 bg-white/[.035] p-5">
           <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <h2 className="text-2xl font-black tracking-[-0.05em] text-white">새 댄스 만들기</h2>
               <p className="mt-2 text-sm font-bold text-mvnt-muted">홈에서 음악을 넣은 뒤 이 페이지에서 스타일을 고르면 안무 초안 흐름으로 이어집니다.</p>
             </div>
-            <button type="button" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-5 text-sm font-black text-white shadow-[0_16px_38px_rgba(255,138,0,.2)]">
+            <button type="button" className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-5 text-xs font-black text-white shadow-[0_16px_38px_rgba(255,138,0,.2)]">
               <Wand2 size={17} /> Generate dance
             </button>
           </div>
@@ -1739,7 +1771,7 @@ function DancePage() {
   );
 }
 
-function CommunityExamples() {
+function CommunityExamples({ sidebarExpanded }) {
   const [activeTag, setActiveTag] = useState('All');
   const [query, setQuery] = useState('');
   const [selectedVideo, setSelectedVideo] = useState(null);
@@ -1774,7 +1806,7 @@ function CommunityExamples() {
                       setActiveTag(tag);
                     }}
                     aria-pressed={selected}
-                    className={`shrink-0 min-h-11 rounded-full border px-4 py-0 text-sm font-black transition-all ${selected ? 'scale-[1.02] border-white bg-white text-black shadow-[0_10px_28px_rgba(255,255,255,.12)]' : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:border-white/28 hover:text-white'}`}
+                    className={`shrink-0 min-h-11 rounded-full border px-4 py-0 text-xs font-black transition-all ${selected ? 'scale-[1.02] border-white bg-white text-black shadow-[0_10px_28px_rgba(255,255,255,.12)]' : 'border-white/12 bg-white/[.035] text-mvnt-muted hover:border-white/28 hover:text-white'}`}
                   >
                     #{tag}
                   </button>
@@ -1790,7 +1822,7 @@ function CommunityExamples() {
               type="button"
               key={`${video.src}-${index}`}
               onClick={() => setSelectedVideo({ video, index })}
-              className="group relative isolate overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45"
+              className="group relative isolate overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45"
               aria-label={`${video.title} 상세 보기`}
             >
               <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
@@ -1798,22 +1830,22 @@ function CommunityExamples() {
               <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/78 to-transparent p-4 pb-12">
                   <div className="flex items-center gap-2">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-2 ring-white/20">{video.creator.slice(0, 1).toUpperCase()}</span>
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-2 ring-white/20">{video.creator.slice(0, 1).toUpperCase()}</span>
                     <span className="min-w-0 truncate text-xs font-black text-white drop-shadow">{video.creator}</span>
                   </div>
                 </div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/82 to-transparent p-4 pt-20">
                   <div className="flex items-end justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-white/90 via-mvnt-yellow to-mvnt-orange text-black shadow-[0_10px_28px_rgba(0,0,0,.45)]">
+                      <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-white/90 via-mvnt-yellow to-mvnt-orange text-black shadow-[0_10px_28px_rgba(0,0,0,.45)]">
                         <span className="text-lg font-black leading-none">♪</span>
                       </span>
                       <div className="min-w-0">
-                        <span className="block text-[11px] font-black uppercase tracking-[0.14em] text-white/54">Song</span>
+                        <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-white/54">Song</span>
                         <h3 className="truncate text-base font-black tracking-[-0.03em] text-white">{video.title}</h3>
                       </div>
                     </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/12 px-2.5 py-1.5 text-xs font-black text-white/90 backdrop-blur-md"><Heart size={12} fill="currentColor" /> {video.likes}</span>
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/12 px-2 py-1 text-xs font-black text-white/90 backdrop-blur-md"><Heart size={12} fill="currentColor" /> {video.likes}</span>
                   </div>
                 </div>
               </div>
@@ -1821,7 +1853,7 @@ function CommunityExamples() {
           ))}
         </div>
         {visibleVideos.length === 0 && (
-          <div className="mt-3 rounded-[28px] border border-white/10 bg-white/[.035] px-6 py-10 text-center text-sm font-bold text-mvnt-muted">
+          <div className="mt-3 rounded-[18px] border border-white/10 bg-white/[.035] px-6 py-10 text-center text-sm font-bold text-mvnt-muted">
             선택한 태그에 맞는 영상이 없습니다.
           </div>
         )}
@@ -1834,6 +1866,7 @@ function CommunityExamples() {
           videos={visibleVideos}
           onSelect={(video, index) => setSelectedVideo({ video, index })}
           onClose={() => setSelectedVideo(null)}
+          sidebarExpanded={sidebarExpanded}
         />
       )}
     </>
@@ -1841,35 +1874,41 @@ function CommunityExamples() {
 }
 
 
-function TrendVideoModal({ video, index, videos, onSelect, onClose }) {
+function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpanded }) {
   const videoRef = useRef(null);
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(9);
+  const [videoAspect, setVideoAspect] = useState('landscape');
+  const [videoSize, setVideoSize] = useState({ width: 16, height: 9 });
   const tags = getCommunityVideoTags(video, index).filter((tag) => tag !== 'All');
-  const displayTags = ['Full Dance', ...tags, video.title.includes('BLACKPINK') ? 'K-pop hook' : video.title.includes('Life') ? 'Slow groove' : '3D character'];
-  const motionIcons = [Footprints, UserRound, AudioLines, Sparkles];
+  const displayTags = ['Full Dance', ...tags.slice(0, 2), video.title.includes('BLACKPINK') ? 'K-pop hook' : '3D character'];
+  const [artistName, songTitle] = video.title.includes(' - ')
+    ? video.title.split(' - ').map((part) => part.trim())
+    : [video.creator, video.title];
+  const musicHue = (index * 42 + 128) % 360;
+  const elapsed = Math.max(0, Math.round(progress * duration));
+  const safeDuration = Math.max(1, Math.round(duration));
+  const previewClass = videoAspect === 'portrait'
+    ? 'h-screen max-w-[calc(100vw-380px)]'
+    : videoAspect === 'square'
+      ? 'h-screen max-w-[calc(100vw-380px)]'
+      : 'w-full max-w-[calc(100vw-380px)] max-h-screen';
+  const previewStyle = { aspectRatio: `${videoSize.width} / ${videoSize.height}` };
 
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') onClose();
-      if (!videos.length) return;
-      if (event.key === 'ArrowLeft') {
-        const nextIndex = (index - 1 + videos.length) % videos.length;
-        onSelect(videos[nextIndex], nextIndex);
-      }
-      if (event.key === 'ArrowRight') {
-        const nextIndex = (index + 1) % videos.length;
-        onSelect(videos[nextIndex], nextIndex);
-      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [index, videos, onClose, onSelect]);
+  }, [onClose]);
 
   useEffect(() => {
     setPaused(false);
     setProgress(0);
+    setVideoAspect('landscape');
+    setVideoSize({ width: 16, height: 9 });
   }, [video.src]);
 
   function togglePlayback() {
@@ -1884,152 +1923,143 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose }) {
     }
   }
 
-  function selectNeighbor(direction) {
-    if (!videos.length) return;
-    const nextIndex = (index + direction + videos.length) % videos.length;
-    onSelect(videos[nextIndex], nextIndex);
-  }
+  return createPortal(
+    <div className="fixed inset-0 z-[999] text-mvnt-text" role="dialog" aria-modal="true" aria-label={`${video.title} 상세 모달`}>
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default bg-black/42 backdrop-blur-[30px] backdrop-saturate-75 supports-[backdrop-filter]:bg-black/34"
+        aria-label="닫기"
+        onClick={onClose}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.42)),radial-gradient(circle_at_36%_0%,rgba(255,138,0,.14),transparent_36rem),radial-gradient(circle_at_84%_12%,rgba(124,58,237,.13),transparent_30rem)]" />
+      <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_180px_rgba(0,0,0,.62)]" />
 
-  const elapsed = Math.max(0, Math.round(progress * duration));
-  const songLabel = video.title.includes('-') ? video.title : `${video.title} (MVNT edit)`;
-  const safeDuration = Math.max(1, Math.round(duration));
+      <div className="absolute inset-0">
+        <article className="relative grid size-full grid-cols-[minmax(0,1fr)_380px] overflow-hidden bg-transparent">
+          <section className="relative flex min-w-0 items-center justify-center overflow-hidden p-0">
+            <div className={`group/video relative ${previewClass} overflow-hidden bg-transparent shadow-none`} style={previewStyle}>
+              <video
+                ref={videoRef}
+                key={video.src}
+                className="size-full object-cover"
+                src={video.src}
+                autoPlay
+                muted
+                loop
+                playsInline
+                onTimeUpdate={(event) => {
+                  const current = event.currentTarget.currentTime || 0;
+                  const total = event.currentTarget.duration || duration;
+                  setDuration(Number.isFinite(total) && total > 0 ? total : duration);
+                  setProgress(total ? Math.min(1, current / total) : 0);
+                }}
+                onLoadedMetadata={(event) => {
+                  const total = event.currentTarget.duration;
+                  if (Number.isFinite(total) && total > 0) setDuration(total);
+                  const width = event.currentTarget.videoWidth || 0;
+                  const height = event.currentTarget.videoHeight || 0;
+                  if (width && height) {
+                    const ratio = width / height;
+                    setVideoSize({ width, height });
+                    setVideoAspect(ratio < 0.85 ? 'portrait' : ratio > 1.2 ? 'landscape' : 'square');
+                  }
+                }}
+              />
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/72 p-3 text-mvnt-text backdrop-blur-2xl sm:p-6" role="dialog" aria-modal="true" aria-label={`${video.title} 상세 모달`}>
-      <button type="button" className="absolute inset-0 cursor-default" aria-label="닫기" onClick={onClose} />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(255,138,0,.26),transparent_34rem),radial-gradient(circle_at_88%_18%,rgba(124,58,237,.18),transparent_30rem)]" />
-
-      <div className="relative grid h-[min(800px,calc(100vh-32px))] w-[min(1420px,calc(100vw-32px))] grid-rows-[1fr_104px] gap-4">
-        <article className="relative grid min-h-0 overflow-hidden rounded-[34px] border border-white/10 bg-neutral-950/92 shadow-[0_34px_120px_rgba(0,0,0,.58)] ring-1 ring-white/[.035] backdrop-blur-2xl lg:grid-cols-[1.12fr_.88fr]">
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-mvnt-orange/70 to-transparent" />
-          <div className="pointer-events-none absolute -right-24 -top-24 size-64 rounded-full bg-mvnt-orange/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 left-1/3 size-72 rounded-full bg-violet-600/12 blur-3xl" />
-
-          <section className="relative min-h-[360px] overflow-hidden bg-[#111018] lg:min-h-0">
-            <video
-              ref={videoRef}
-              key={video.src}
-              className="size-full object-cover"
-              src={video.src}
-              autoPlay
-              muted
-              loop
-              playsInline
-              onTimeUpdate={(event) => {
-                const current = event.currentTarget.currentTime || 0;
-                const total = event.currentTarget.duration || duration;
-                setDuration(Number.isFinite(total) && total > 0 ? total : duration);
-                setProgress(total ? Math.min(1, current / total) : 0);
-              }}
-              onLoadedMetadata={(event) => {
-                const total = event.currentTarget.duration;
-                if (Number.isFinite(total) && total > 0) setDuration(total);
-              }}
-            />
-            <div className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${video.tone} via-transparent to-black/30 opacity-80`} />
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,transparent_30%,rgba(0,0,0,.38)_82%)]" />
-
-            <div className="absolute right-5 top-5 flex rounded-full border border-white/12 bg-black/42 p-1 text-[13px] font-black text-white/54 shadow-[0_12px_34px_rgba(0,0,0,.32)] backdrop-blur-2xl">
-              <span className="rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow px-4 py-2 text-black shadow-[0_8px_24px_rgba(255,138,0,.25)]">3D</span>
-              <span className="px-4 py-2">VID</span>
-            </div>
-
-            <div className="absolute inset-x-5 bottom-5 grid h-[68px] grid-cols-[52px_62px_1fr_62px_52px] items-center gap-3 rounded-full border border-white/12 bg-black/58 px-3 shadow-[0_18px_54px_rgba(0,0,0,.42)] backdrop-blur-2xl">
-              <button type="button" onClick={togglePlayback} className="grid size-12 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-black shadow-[0_12px_30px_rgba(255,138,0,.28)]" aria-label={paused ? '재생' : '일시정지'}>
-                {paused ? <Play size={22} fill="currentColor" /> : <Pause size={22} fill="currentColor" />}
-              </button>
-              <span className="font-mono text-sm font-black text-white/48">0:{String(elapsed).padStart(2, '0')}</span>
-              <div className="relative h-2 rounded-full bg-white/16">
-                <div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow" style={{ width: `${Math.max(4, progress * 100)}%` }} />
-                <span className="absolute top-1/2 size-5 -translate-y-1/2 rounded-full bg-mvnt-yellow shadow-[0_2px_14px_rgba(255,209,90,.5)]" style={{ left: `calc(${Math.max(4, progress * 100)}% - 10px)` }} />
+              <div className="absolute left-4 top-4 flex rounded-full border border-white/12 bg-black/42 p-1 text-[11px] font-black text-white/54 opacity-0 shadow-[0_12px_30px_rgba(0,0,0,.34)] backdrop-blur-xl transition-opacity duration-150 group-hover/video:opacity-100 group-focus-within/video:opacity-100">
+                <span className="rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow px-3 py-1.5 text-black">3D</span>
+                <span className="px-3 py-1.5">VID</span>
               </div>
-              <span className="font-mono text-sm font-black text-white/48">0:{String(safeDuration).padStart(2, '0')}</span>
-              <button type="button" className="grid size-12 place-items-center rounded-full border border-white/10 bg-white/[.055] text-white/58" aria-label="음량">
-                <Volume2 size={20} />
-              </button>
+
+              <div className="absolute right-4 top-4 flex max-w-[calc(100%-130px)] flex-wrap justify-end gap-1.5 opacity-0 transition-opacity duration-150 group-hover/video:opacity-100 group-focus-within/video:opacity-100">
+                {displayTags.map((tag) => (
+                  <span key={tag} className="rounded-full border border-white/12 bg-black/44 px-2.5 py-1.5 text-[11px] font-black text-mvnt-yellow backdrop-blur-md"># {tag}</span>
+                ))}
+              </div>
+
+              <div className="absolute inset-x-0 bottom-0 opacity-0 transition-opacity duration-150 group-hover/video:opacity-100 group-focus-within/video:opacity-100">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/82 via-black/38 to-transparent" />
+                <div className="relative px-5 pb-4">
+                  <div className="relative mb-2 h-1 rounded-full bg-white/20">
+                    <div className="absolute inset-y-0 left-0 rounded-full bg-mvnt-yellow" style={{ width: `${Math.max(2, progress * 100)}%` }} />
+                  </div>
+                  <div className="flex h-8 items-center justify-between gap-3 text-white">
+                    <div className="flex items-center gap-3">
+                      <button type="button" onClick={togglePlayback} className="grid size-8 place-items-center text-white transition hover:text-mvnt-yellow" aria-label={paused ? '재생' : '일시정지'}>
+                        {paused ? <Play size={21} fill="currentColor" /> : <Pause size={21} fill="currentColor" />}
+                      </button>
+                      <button type="button" className="grid size-8 place-items-center text-white/80 transition hover:text-white" aria-label="음량">
+                        <Volume2 size={18} />
+                      </button>
+                      <span className="font-mono text-xs font-bold text-white/88">0:{String(elapsed).padStart(2, '0')} / 0:{String(safeDuration).padStart(2, '0')}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-white/86">
+                      <button type="button" className="grid size-8 place-items-center rounded-md transition hover:bg-white/10 hover:text-white" aria-label="캡션"><Type size={17} /></button>
+                      <button type="button" className="grid size-8 place-items-center rounded-md transition hover:bg-white/10 hover:text-white" aria-label="설정"><Settings size={18} /></button>
+                      <button type="button" className="grid size-8 place-items-center rounded-md transition hover:bg-white/10 hover:text-white" aria-label="전체화면"><ExternalLink size={17} /></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 
-          <section className="relative flex min-h-0 flex-col px-7 py-7 sm:px-10 lg:px-12">
-            <button type="button" onClick={onClose} className="absolute right-6 top-6 grid size-11 place-items-center rounded-full border border-white/10 bg-white/[.035] text-white/64 shadow-[0_12px_34px_rgba(0,0,0,.28)] transition hover:bg-white/[.08] hover:text-white" aria-label="닫기">
-              <X size={24} strokeWidth={2.3} />
+          <aside className="relative flex min-h-0 flex-col border-l border-white/10 bg-[#0d0e10]/86 p-5 shadow-[-28px_0_90px_rgba(0,0,0,.38)] backdrop-blur-2xl">
+            <button type="button" onClick={onClose} className="absolute right-4 top-4 z-10 grid size-9 place-items-center rounded-full text-white/58 transition hover:bg-white/[.06] hover:text-white" aria-label="닫기">
+              <X size={22} strokeWidth={2.2} />
             </button>
 
-            <div className="flex h-14 items-start gap-5 pr-14 text-white/24">
-              {motionIcons.map((Icon, iconIndex) => (
-                <Icon key={iconIndex} size={34} strokeWidth={3} className="transition first:text-mvnt-orange/70" />
-              ))}
+            <header className="mb-5 flex items-center gap-3 pr-10">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow text-sm font-black text-black">{video.creator.slice(0, 1).toUpperCase()}</span>
+              <div className="min-w-0">
+                <strong className="block truncate text-sm font-black text-white">{video.creator}</strong>
+                <span className="mt-0.5 block text-xs font-bold text-mvnt-muted">Creator</span>
+              </div>
+            </header>
+
+            <section className="rounded-[22px] border border-white/10 bg-white/[.035] p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-xs font-black uppercase tracking-[0.16em] text-white/48">Music</h3>
+                <span className="text-[10px] font-black text-mvnt-yellow">YouTube Music style</span>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <div className="music-source-art relative grid aspect-square w-full max-w-[220px] place-items-center overflow-hidden rounded-[16px] text-white shadow-[0_22px_70px_rgba(0,0,0,.48)] ring-1 ring-white/12" style={{ '--music-hue': musicHue }}>
+                  <span className="absolute left-3 top-3 z-10 grid h-5 w-8 place-items-center rounded-[6px] bg-white text-[hsl(var(--music-hue)_80%_34%)] shadow-sm"><Play size={10} fill="currentColor" strokeWidth={3} /></span>
+                  <Music2 className="relative z-10 drop-shadow-[0_5px_18px_rgba(0,0,0,.55)]" size={46} strokeWidth={2.4} />
+                  <span className="absolute bottom-3 left-3 right-3 z-10 truncate text-[10px] font-black uppercase tracking-[0.18em] text-white/78">{artistName}</span>
+                </div>
+                <h4 className="mt-4 max-w-full truncate text-xl font-black leading-tight tracking-[-0.045em] text-white">{songTitle}</h4>
+                <p className="mt-1 max-w-full truncate text-sm font-bold text-mvnt-muted">{artistName}</p>
+              </div>
+            </section>
+
+            <section className="mt-4 rounded-[22px] border border-white/10 bg-white/[.035] p-4">
+              <h3 className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-white/48">Information</h3>
+              <dl className="divide-y divide-white/10 text-sm">
+                <div className="flex items-center justify-between gap-4 py-2"><dt className="text-mvnt-muted">Feature</dt><dd className="font-black text-white">Motion</dd></div>
+                <div className="flex items-center justify-between gap-4 py-2"><dt className="text-mvnt-muted">Quality</dt><dd className="font-black text-white">3D</dd></div>
+                <div className="flex items-center justify-between gap-4 py-2"><dt className="text-mvnt-muted">Created</dt><dd className="font-black text-white">Apr {20 + (index % 9)}, 2026</dd></div>
+              </dl>
+            </section>
+
+            <div className="mt-auto space-y-3 pt-5">
+              <button type="button" className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-4 text-sm font-black text-white shadow-[0_18px_46px_rgba(255,138,0,.20)] transition hover:brightness-110">
+                <Wand2 size={17} /> Open in Studio
+              </button>
+              <button type="button" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[16px] border border-white/10 bg-white/[.035] px-4 text-sm font-black text-white/78 transition hover:bg-white/[.07] hover:text-white">
+                <ArrowDown size={17} /> Download
+              </button>
             </div>
-
-            <div className="my-auto max-w-[610px] py-8">
-              <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-mvnt-orange/20 bg-mvnt-orange/[.075] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-mvnt-yellow">
-                <Flame size={13} fill="currentColor" /> Trending dance
-              </span>
-              <h3 className="text-[clamp(38px,4.2vw,62px)] font-black leading-[.96] tracking-[-0.06em] text-white">{video.title}</h3>
-              <p className="mt-6 flex items-center gap-3 text-[clamp(15px,1.35vw,20px)] font-black text-mvnt-muted">
-                <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-white via-mvnt-yellow to-mvnt-orange text-black shadow-[0_10px_26px_rgba(0,0,0,.32)]">♪</span>
-                <span className="min-w-0 truncate">{songLabel}</span>
-              </p>
-
-              <div className="mt-8 flex max-w-full gap-2.5 overflow-hidden">
-                {displayTags.map((tag) => (
-                  <span key={tag} className="shrink-0 rounded-full border border-white/10 bg-white/[.055] px-4 py-2.5 text-sm font-black text-mvnt-yellow/90"># {tag}</span>
-                ))}
-              </div>
-
-              <div className="mt-4 grid max-w-[620px] grid-cols-3 overflow-hidden rounded-[24px] border border-white/10 bg-white/[.045] text-mvnt-yellow shadow-[inset_0_1px_0_rgba(255,255,255,.06)]">
-                {['Motion', 'Music', '3D Character'].map((item, itemIndex) => (
-                  <div key={item} className={`flex min-h-[62px] items-center justify-center gap-2 text-[13px] font-black sm:text-sm ${itemIndex ? 'border-l border-white/10' : ''}`}>
-                    <span className="size-3 rounded-full border-[3px] border-mvnt-orange bg-transparent" /> {item}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8 grid grid-cols-[auto_1fr_auto] items-center gap-3">
-                <button type="button" className="inline-flex min-h-13 items-center gap-3 rounded-full border border-white/10 bg-white/[.035] px-5 text-base font-black text-white/72 transition hover:bg-white/[.07] hover:text-white">
-                  <Heart size={24} /> {video.likes}
-                </button>
-                <button type="button" className="inline-flex min-h-13 items-center justify-center gap-4 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-6 text-[clamp(16px,1.55vw,22px)] font-black text-white shadow-[0_18px_48px_rgba(255,138,0,.22)] transition hover:brightness-110">
-                  Open in Studio <ArrowUp className="rotate-90" size={25} />
-                </button>
-                <button type="button" className="grid size-13 place-items-center rounded-full border border-white/10 bg-white/[.035] text-white/68 transition hover:bg-white/[.07] hover:text-white" aria-label="공유">
-                  <Share2 size={24} />
-                </button>
-              </div>
-            </div>
-
-            <footer className="grid gap-2 border-t border-white/10 pt-5 text-sm font-bold text-mvnt-muted sm:grid-cols-[1fr_auto] sm:items-end">
-              <div>
-                <p>Apr {20 + (index % 9)}, 2026</p>
-                <p className="mt-2">Created by <span className="text-emerald-400">●</span> <span className="text-white/74">{video.creator}</span> — {9 + (index % 5)} dances</p>
-              </div>
-              <button type="button" className="inline-flex items-center gap-1 justify-self-start font-black text-white/48 transition hover:text-white sm:justify-self-end">AI summary <ChevronDown size={16} /></button>
-            </footer>
-          </section>
+          </aside>
         </article>
-
-        <nav className="relative flex min-h-0 items-center gap-3 overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950/82 px-3 shadow-[0_22px_70px_rgba(0,0,0,.42)] ring-1 ring-white/[.035] backdrop-blur-2xl" aria-label="Trend carousel">
-          <button type="button" onClick={() => selectNeighbor(-1)} className="grid size-12 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[.035] text-white/60 transition hover:bg-white/[.08] hover:text-white" aria-label="이전 영상"><ChevronLeft size={25} /></button>
-          <div className="flex min-w-0 flex-1 gap-3 overflow-hidden py-3">
-            {videos.slice(0, 10).map((item, itemIndex) => {
-              const selected = item.src === video.src && item.title === video.title;
-              return (
-                <button key={`${item.src}-modal-${itemIndex}`} type="button" onClick={() => onSelect(item, itemIndex)} className={`relative h-[76px] w-[104px] shrink-0 overflow-hidden rounded-[18px] border-2 bg-neutral-900 transition ${selected ? 'border-mvnt-orange shadow-[0_0_0_2px_rgba(255,138,0,.18),0_12px_30px_rgba(255,138,0,.12)]' : 'border-white/8 opacity-62 hover:border-white/18 hover:opacity-100'}`} aria-label={`${item.title} 보기`}>
-                  <video className="size-full object-cover" src={item.src} muted playsInline preload="metadata" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                </button>
-              );
-            })}
-          </div>
-          <button type="button" onClick={() => selectNeighbor(1)} className="grid size-12 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[.035] text-white/60 transition hover:bg-white/[.08] hover:text-white" aria-label="다음 영상"><ChevronRight size={25} /></button>
-        </nav>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
 function DropdownItem({ icon: Icon, children }) {
-  return <DropdownMenu.Item className="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-xs font-bold text-mvnt-muted outline-none hover:bg-white/10 hover:text-mvnt-text"><Icon size={15} /> {children}</DropdownMenu.Item>;
+  return <DropdownMenu.Item className="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-[11px] font-bold text-mvnt-muted outline-none hover:bg-white/10 hover:text-mvnt-text"><Icon size={15} /> {children}</DropdownMenu.Item>;
 }
 
 createRoot(document.getElementById('root')).render(<App />);

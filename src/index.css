@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+
+:root {
+  color-scheme: dark;
+  background-color: #050505;
+}
+
 @theme {
   --color-mvnt-bg: #050505;
   --color-mvnt-text: #f6f3ee;
@@ -17,6 +23,7 @@ html, body, #root {
 body {
   margin: 0;
   min-width: 320px;
+  background-color: #050505;
   background:
     radial-gradient(circle at 50% -20%, rgba(255,138,0,.28), transparent 34rem),
     linear-gradient(180deg, #0a0a0a, #050505 42%);
@@ -26,6 +33,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 0;
+  background-color: #050505;
   background:
     radial-gradient(circle at 50% -20%, rgba(255,138,0,.28), transparent 34rem),
     linear-gradient(180deg, #0a0a0a, #050505 42%);
@@ -49,6 +57,7 @@ button { cursor: pointer; }
   content: '';
   position: absolute;
   inset: 0;
+  background-color: #050505;
   background:
     radial-gradient(circle at 50% 38%, var(--glow), transparent 32%),
     linear-gradient(150deg, rgba(255,255,255,.12), transparent 46%),
@@ -77,6 +86,7 @@ button { cursor: pointer; }
   overflow: hidden;
   border-radius: 22px;
   border: 1px solid rgba(255,255,255,.11);
+  background-color: #050505;
   background:
     radial-gradient(circle at 50% 42%, hsl(calc(var(--i) * 29 + 28) 92% 58% / .72), transparent 35%),
     linear-gradient(150deg, #202020, #080808);
@@ -193,6 +203,7 @@ button { cursor: pointer; }
 .music-source-art {
   --music-hue: 128;
   isolation: isolate;
+  background-color: #050505;
   background:
     radial-gradient(circle at 72% 24%, hsl(calc(var(--music-hue) + 42) 92% 58% / .4), transparent 34%),
     linear-gradient(135deg, hsl(var(--music-hue) 76% 35%), hsl(calc(var(--music-hue) + 18) 84% 24%));
@@ -204,6 +215,7 @@ button { cursor: pointer; }
   position: absolute;
   inset: -18%;
   z-index: 0;
+  background-color: #050505;
   background:
     radial-gradient(circle at 22% 28%, rgba(255,255,255,.18), transparent 26%),
     repeating-radial-gradient(ellipse at 14% 50%, rgba(0,0,0,.18) 0 8px, transparent 8px 19px),
@@ -252,6 +264,7 @@ button { cursor: pointer; }
 }
 
 .subscription-page {
+  background-color: #050505;
   background:
     radial-gradient(circle at 50% -16%, rgba(255, 138, 0, .28), transparent 34rem),
     radial-gradient(circle at 16% 68%, rgba(236, 72, 153, .14), transparent 30rem),

@@ -4,8 +4,8 @@
   "description": "AI dance and choreography generator for music-to-dance creator workflows.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#090910",
-  "theme_color": "#B8FF4D",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "icons": [
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
