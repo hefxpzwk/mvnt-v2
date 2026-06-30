@@ -214,8 +214,6 @@ function App() {
     return <SubscriptionPage onClose={() => navigate(defaultPage)} />;
   }
 
-  const isExplorePage = activePage === 'Explore';
-
   return (
     <div className="relative isolate h-screen overflow-hidden text-mvnt-text">
       <div className="app-background-gradient" aria-hidden="true" />
@@ -227,7 +225,7 @@ function App() {
         onNavigate={navigate}
         onToggle={() => setSidebarOpen((value) => !value)}
       />
-      <main ref={mainRef} className={`relative z-10 ${isExplorePage ? 'w-full' : 'mx-auto w-[min(1440px,calc(100vw-32px))]'} h-screen overflow-y-auto overscroll-contain transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
+      <main ref={mainRef} className={`fixed inset-y-0 right-0 z-10 h-screen subtle-scrollbar overflow-y-auto overscroll-contain transition-[left] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'left-[216px]' : 'left-[72px]'}`}>
         <TopHeader
           activePage={activePage}
           sidebarExpanded={sidebarExpanded}
@@ -265,7 +263,7 @@ function TopHeader({ activePage, sidebarExpanded, onNavigate, onSearchSubmit, on
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-40 border-b border-white/[.075] bg-[#070707]/28 shadow-[0_18px_60px_rgba(0,0,0,.16)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#070707]/22">
-      <form onSubmit={submitSearch} className={`pointer-events-none absolute inset-y-0 right-[300px] hidden items-center justify-center transition-[left] duration-300 ease-[cubic-bezier(.22,1,.36,1)] md:flex lg:right-[330px] ${sidebarExpanded ? 'left-[236px]' : 'left-[88px]'}`} role="search" aria-label="전역 검색">
+      <form onSubmit={submitSearch} className={`pointer-events-none absolute inset-y-0 right-[300px] hidden items-center justify-center transition-[left] duration-300 ease-[cubic-bezier(.22,1,.36,1)] md:flex lg:right-[330px] ${sidebarExpanded ? 'left-[216px]' : 'left-[72px]'}`} role="search" aria-label="전역 검색">
         <div className={`pointer-events-auto group flex h-10 w-[min(420px,100%)] items-center overflow-hidden rounded-full border bg-black/24 text-mvnt-muted shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_14px_42px_rgba(0,0,0,.22)] backdrop-blur-2xl transition focus-within:border-mvnt-orange/55 focus-within:bg-black/34 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_16px_52px_rgba(255,138,0,.14)] ${activePage === 'Search' ? 'border-mvnt-orange/35' : 'border-white/14'}`}>
             <button type="submit" className="ml-3 grid size-6 shrink-0 place-items-center rounded-full text-white/62 transition hover:bg-white/[.12] hover:text-white group-focus-within:text-white/86" aria-label="검색">
               <Search size={17} strokeWidth={2.65} />
@@ -288,7 +286,7 @@ function TopHeader({ activePage, sidebarExpanded, onNavigate, onSearchSubmit, on
         </div>
       </form>
 
-      <div className={`pointer-events-auto relative z-10 flex h-12 w-full items-center justify-end gap-4 py-0 pr-5 transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
+      <div className={`pointer-events-auto relative z-10 flex h-12 w-full items-center justify-end gap-4 py-0 pr-5 transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[216px]' : 'pl-[72px]'}`}>
         <div className="flex shrink-0 items-center gap-1.5">
           <button type="button" onClick={() => onNavigate('Credits')} className="hidden min-h-9 items-center rounded-full px-3 text-[11px] font-black transition hover:bg-white/[.04] sm:inline-flex">
             <span className="bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-500 bg-clip-text text-transparent">
@@ -529,9 +527,9 @@ function HomePage({ musicSource, onMusicSourceChange, sidebarExpanded }) {
   }
 
   return (
-    <section className="min-h-screen py-10">
+    <section className="min-h-screen px-4 py-10">
       <div className="flex min-h-[calc(100vh-80px)] -translate-y-8 items-center justify-center">
-        <div className="w-[min(980px,100%)]">
+        <div className="w-full max-w-[980px]">
           <div className="mb-8 text-center">
           <h1
             className={`hero-gradient-text text-[clamp(42px,6.5vw,84px)] font-black leading-[1.02] tracking-[-0.025em] ${headlineHovering ? 'is-hovering' : ''}`}
@@ -716,7 +714,7 @@ function SubscriptionPage({ onClose }) {
   const isAnnual = billingPeriod === 'annual';
 
   return (
-    <main className="subscription-page h-screen overflow-y-auto text-mvnt-text">
+    <main className="subscription-page subtle-scrollbar h-screen overflow-y-auto text-mvnt-text">
       <button
         type="button"
         onClick={onClose}
@@ -1009,40 +1007,32 @@ function ReelVideo({ reel, index }) {
   );
 }
 
-function MusicIdentityOverlay({ reel, index, expanded, onExpandedChange }) {
+function MusicIdentityOverlay({ reel, index }) {
   const hue = (index * 42 + 128) % 360;
 
   return (
     <aside
-      className="music-identity-overlay group/music absolute left-[calc(50%+188px)] top-24 z-20 hidden h-24 w-[246px] text-white md:block"
+      className="music-identity-overlay pointer-events-none absolute left-[max(18px,calc(50%-330px))] top-24 z-20 hidden w-20 text-white md:block"
       style={{ '--music-hue': hue }}
       aria-label={`${reel.title} sound source`}
-      onMouseEnter={() => onExpandedChange(true)}
-      onMouseLeave={() => onExpandedChange(false)}
-      onFocus={() => onExpandedChange(true)}
-      onBlur={() => onExpandedChange(false)}
     >
-      <div className={`music-source-art absolute right-0 top-0 grid size-24 shrink-0 place-items-center overflow-hidden rounded-[18px] text-white shadow-[0_18px_44px_rgba(0,0,0,.42)] ring-1 ring-white/15 transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expanded ? '-translate-x-[130px] scale-[1.035]' : 'translate-x-0 scale-100'}`}>
-        <div className="absolute left-4 top-4 z-10 flex items-center gap-1.5 text-[10px] font-black leading-none">
-          <span className="grid h-4 w-6 place-items-center rounded-[4px] bg-white text-[hsl(var(--music-hue)_80%_34%)]"><Play size={8} fill="currentColor" strokeWidth={3} /></span>
+      <div className="music-source-art relative grid aspect-square w-full shrink-0 place-items-center overflow-hidden rounded-[20px] text-white shadow-[0_18px_44px_rgba(0,0,0,.42)] ring-1 ring-white/15">
+        <div className="absolute left-3 top-3 z-10 flex items-center gap-1 text-[9px] font-black leading-none">
+          <span className="grid h-4 w-6 place-items-center rounded-[5px] bg-white text-[hsl(var(--music-hue)_80%_34%)]"><Play size={8} fill="currentColor" strokeWidth={3} /></span>
           <span>YouTube</span>
         </div>
-        <span className="absolute left-4 top-9 z-10 text-[13px] font-semibold text-white/82">Audio Library</span>
-        <div className="music-speaker-beat absolute bottom-4 left-4 z-10 flex h-9 items-end gap-1.5" aria-hidden="true">
-          <span className="h-5 w-2 rounded-full bg-white" />
-          <span className="h-9 w-2 rounded-full bg-white" />
-          <span className="h-6 w-2 rounded-full bg-white" />
-          <span className="h-8 w-2 rounded-full bg-white" />
+        <span className="absolute left-3 top-8 z-10 max-w-[58px] text-[15px] font-black leading-[1.02] tracking-[-0.05em] text-white">Audio Library</span>
+        <div className="music-speaker-beat absolute bottom-3 left-3 z-10 flex h-7 items-end gap-1" aria-hidden="true">
+          <span className="h-4 w-1.5 rounded-full bg-white" />
+          <span className="h-7 w-1.5 rounded-full bg-white" />
+          <span className="h-5 w-1.5 rounded-full bg-white" />
+          <span className="h-6 w-1.5 rounded-full bg-white" />
         </div>
-        <span className="music-source-note relative z-20 grid size-7 place-items-center rounded-full bg-white/16 text-xl font-black text-white backdrop-blur-sm">♪</span>
+        <span className="music-source-note relative z-20 grid size-7 place-items-center rounded-full bg-white/18 text-xl font-black text-white backdrop-blur-sm">♪</span>
       </div>
-      <strong className={`music-hover-title pointer-events-none absolute left-[108px] top-1/2 w-[min(390px,calc(50vw-222px))] -translate-y-1/2 truncate text-left text-[clamp(30px,3.4vw,52px)] font-black leading-none tracking-[-0.075em] text-white drop-shadow-[0_5px_18px_rgba(0,0,0,.82)] transition duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expanded ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'}`}>
-        {reel.title}
-      </strong>
     </aside>
   );
 }
-
 
 function ProjectsPage() {
   const [activeProjectFilter, setActiveProjectFilter] = useState('전체');
@@ -1076,8 +1066,8 @@ function ProjectsPage() {
   }
 
   return (
-    <section className="min-h-screen px-2 pb-20 pt-20">
-      <div className="mx-auto w-[min(1220px,100%)]">
+    <section className="min-h-screen px-4 pb-20 pt-20">
+      <div className="w-full">
         <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-[clamp(30px,4vw,46px)] font-black leading-none tracking-[-0.055em] text-white">프로젝트</h1>
@@ -1377,8 +1367,8 @@ function SearchPage({ initialQuery = '', onCreateFromQuery, sidebarExpanded }) {
 
   return (
     <>
-    <section className="min-h-screen px-2 pb-20 pt-20">
-      <div className="mx-auto w-[min(1180px,100%)]">
+    <section className="min-h-screen px-4 pb-20 pt-20">
+      <div className="w-full">
         <div className="sticky top-16 z-20 mb-6 rounded-[18px] border border-white/10 bg-neutral-950/88 p-3 shadow-[0_18px_70px_rgba(0,0,0,.34)] backdrop-blur-2xl">
           <div className="flex min-h-12 items-center gap-3 rounded-2xl bg-white/[.055] px-4 text-mvnt-muted">
             <Search size={19} />
@@ -1480,7 +1470,16 @@ function ExplorePage() {
   const feedRef = useRef(null);
   const [likedReels, setLikedReels] = useState({});
   const [scrollBounds, setScrollBounds] = useState({ canUp: false, canDown: true });
-  const [expandedMusicIndex, setExpandedMusicIndex] = useState(null);
+  const [activeCommentIndex, setActiveCommentIndex] = useState(null);
+  const [commentDrafts, setCommentDrafts] = useState({});
+  const [reelComments, setReelComments] = useState({});
+  const exploreCommentCardRef = useRef(null);
+  const exploreCommentButtonRefs = useRef({});
+  const exploreCommentDragRef = useRef(null);
+  const [exploreCommentPosition, setExploreCommentPosition] = useState(() => ({
+    x: typeof window === 'undefined' ? 520 : Math.max(24, window.innerWidth - 460),
+    y: 110
+  }));
   const reels = communityVideos.map((video, index) => ({
     ...video,
     comment: [
@@ -1496,8 +1495,13 @@ function ExplorePage() {
     const feed = feedRef.current;
     if (!feed) return undefined;
 
+    let lastScrollTop = feed.scrollTop;
     const updateScrollBounds = () => {
       const maxScroll = Math.max(0, feed.scrollHeight - feed.clientHeight);
+      if (Math.abs(feed.scrollTop - lastScrollTop) > 1) {
+        lastScrollTop = feed.scrollTop;
+        setActiveCommentIndex(null);
+      }
       setScrollBounds({
         canUp: feed.scrollTop > 2,
         canDown: feed.scrollTop < maxScroll - 2
@@ -1519,6 +1523,79 @@ function ExplorePage() {
     feed.scrollBy({ top: direction * feed.clientHeight, behavior: 'smooth' });
   }
 
+  function getDefaultReelComments() {
+    return [
+      { author: 'momo', text: '첫 동작 타이밍이 진짜 좋네요.' },
+      { author: 'loophaus', text: '이 루틴으로 짧은 쇼츠 만들기 딱 좋아요.' },
+      { author: 'mvnt picks', text: '팔 라인만 조금 더 크게 잡으면 더 잘 보일 듯.' }
+    ];
+  }
+
+  function getCommentsForReel(reel, index) {
+    return reelComments[index] || getDefaultReelComments().slice(0, 2 + (index % 2));
+  }
+
+  function submitReelComment(event, reel, index) {
+    event.preventDefault();
+    const text = (commentDrafts[index] || '').trim();
+    if (!text) return;
+    setReelComments((value) => ({
+      ...value,
+      [index]: [{ author: 'You', text }, ...getCommentsForReel(reel, index)]
+    }));
+    setCommentDrafts((value) => ({ ...value, [index]: '' }));
+  }
+
+  function openExploreComments(index) {
+    setActiveCommentIndex((value) => {
+      if (value === index) return null;
+      if (typeof window !== 'undefined') {
+        const rect = exploreCommentButtonRefs.current[index]?.getBoundingClientRect();
+        const cardWidth = Math.min(380, window.innerWidth - 32);
+        const cardHeight = Math.min(420, window.innerHeight - 32);
+        const margin = 16;
+        if (rect) {
+          const preferredX = rect.right + 14;
+          const nextY = rect.top + rect.height / 2 - cardHeight / 2;
+          setExploreCommentPosition({
+            x: Math.min(window.innerWidth - cardWidth - margin, Math.max(margin, preferredX)),
+            y: Math.min(window.innerHeight - cardHeight - margin, Math.max(margin, nextY))
+          });
+        }
+      }
+      return index;
+    });
+  }
+
+  function startExploreCommentDrag(event) {
+    if (event.button !== 0) return;
+    const rect = exploreCommentCardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    exploreCommentDragRef.current = {
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function moveExploreCommentDrag(event) {
+    if (!exploreCommentDragRef.current) return;
+    const card = exploreCommentCardRef.current;
+    const width = card?.offsetWidth || 380;
+    const height = card?.offsetHeight || 420;
+    const maxX = Math.max(16, window.innerWidth - width - 16);
+    const maxY = Math.max(16, window.innerHeight - height - 16);
+    setExploreCommentPosition({
+      x: Math.min(maxX, Math.max(16, event.clientX - exploreCommentDragRef.current.offsetX)),
+      y: Math.min(maxY, Math.max(16, event.clientY - exploreCommentDragRef.current.offsetY))
+    });
+  }
+
+  function stopExploreCommentDrag(event) {
+    exploreCommentDragRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  }
+
   return (
     <section ref={feedRef} className="reels-feed h-screen overflow-x-hidden overflow-y-auto overscroll-x-none overscroll-y-contain snap-y snap-mandatory scroll-smooth">
 
@@ -1536,7 +1613,7 @@ function ExplorePage() {
       </div>
       {reels.map((reel, index) => (
         <article key={`${reel.src}-${index}`} className="relative ml-[max(16px,calc(50%-460px))] mr-auto flex min-h-screen w-[min(720px,100%)] snap-start items-stretch justify-center px-4 py-0">
-          <div className={`relative isolate h-screen w-full max-w-[430px] overflow-hidden rounded-none border-x border-white/10 bg-neutral-950 shadow-[0_30px_90px_rgba(0,0,0,.55)] transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expandedMusicIndex === index ? '-translate-x-[130px]' : 'translate-x-0'}`}>
+          <div className="relative isolate h-screen w-full max-w-[430px] overflow-hidden rounded-none border-x border-white/10 bg-neutral-950 shadow-[0_30px_90px_rgba(0,0,0,.55)]">
             <ReelVideo reel={reel} index={index} />
 
             <div className="absolute inset-x-0 bottom-0 z-10 p-4 pb-5">
@@ -1553,14 +1630,80 @@ function ExplorePage() {
             </div>
           </div>
 
-          <MusicIdentityOverlay
-            reel={reel}
-            index={index}
-            expanded={expandedMusicIndex === index}
-            onExpandedChange={(expanded) => setExpandedMusicIndex(expanded ? index : null)}
-          />
+          <MusicIdentityOverlay reel={reel} index={index} />
 
-          <div className={`absolute bottom-8 right-[max(18px,calc(50%-300px))] z-20 flex flex-col items-center gap-3 transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expandedMusicIndex === index ? '-translate-x-[130px]' : 'translate-x-0'}`}>
+          {activeCommentIndex === index && (
+            <aside
+              ref={exploreCommentCardRef}
+              className="fixed z-[1001] flex h-[min(420px,calc(100vh-32px))] w-[min(380px,calc(100vw-32px))] flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#111]/95 text-white shadow-[0_18px_60px_rgba(0,0,0,.52)] backdrop-blur-xl"
+              style={{ left: `${exploreCommentPosition.x}px`, top: `${exploreCommentPosition.y}px` }}
+              role="dialog"
+              aria-label="댓글"
+            >
+              <div
+                className="flex cursor-move touch-none select-none items-center justify-between border-b border-white/10 px-4 py-3"
+                onPointerDown={startExploreCommentDrag}
+                onPointerMove={moveExploreCommentDrag}
+                onPointerUp={stopExploreCommentDrag}
+                onPointerCancel={stopExploreCommentDrag}
+              >
+                <h3 className="text-sm font-black tracking-[-0.02em] text-white">
+                  댓글 <span className="ml-1 text-white/38">{getCommentsForReel(reel, index).length}</span>
+                </h3>
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setActiveCommentIndex(null);
+                  }}
+                  className="grid size-7 place-items-center rounded-full border border-white/8 bg-white/[.035] text-white/50 transition hover:bg-white/10 hover:text-white"
+                  aria-label="댓글 닫기"
+                >
+                  <X size={15} strokeWidth={2.4} />
+                </button>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="space-y-3.5">
+                  {getCommentsForReel(reel, index).map((comment, commentIndex) => (
+                    <article key={`${comment.author}-${comment.text}-${commentIndex}`} className="flex gap-2.5">
+                      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white/8 text-[10px] font-black text-white/72 ring-1 ring-white/8">
+                        {comment.author.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[13px] leading-relaxed text-white/72">
+                          <strong className="mr-1.5 font-black text-white/90">{comment.author}</strong>
+                          {comment.text}
+                        </p>
+                        <span className="mt-1 block text-[10px] font-bold text-white/28">
+                          {commentIndex === 0 && comment.author === 'You' ? '방금' : `${commentIndex + 2}분 전`}
+                        </span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+
+              <form onSubmit={(event) => submitReelComment(event, reel, index)} className="flex items-center gap-2 border-t border-white/10 px-3 py-2.5">
+                <input
+                  className="min-w-0 flex-1 rounded-full bg-white/[.06] px-3.5 py-2 text-[13px] font-bold text-white outline-none placeholder:text-white/32 focus:bg-white/[.085]"
+                  placeholder="댓글 달기..."
+                  value={commentDrafts[index] || ''}
+                  onChange={(event) => setCommentDrafts((value) => ({ ...value, [index]: event.target.value }))}
+                />
+                <button
+                  type="submit"
+                  disabled={!(commentDrafts[index] || '').trim()}
+                  className="shrink-0 rounded-full px-3 py-2 text-[12px] font-black text-mvnt-yellow transition hover:bg-white/10 hover:text-white disabled:cursor-default disabled:bg-transparent disabled:text-white/22"
+                >
+                  게시
+                </button>
+              </form>
+            </aside>
+          )}
+
+          <div className="absolute bottom-8 right-[max(18px,calc(50%-300px))] z-20 flex flex-col items-center gap-3">
             <button
               type="button"
               onClick={() => setLikedReels((value) => ({ ...value, [index]: !value[index] }))}
@@ -1571,6 +1714,20 @@ function ExplorePage() {
               <Heart size={22} fill={likedReels[index] ? 'currentColor' : 'none'} />
             </button>
             <span className="-mt-2 text-[10px] font-black text-white/62">{reel.likes + (likedReels[index] ? 1 : 0)}</span>
+            <button
+              ref={(element) => {
+                if (element) exploreCommentButtonRefs.current[index] = element;
+                else delete exploreCommentButtonRefs.current[index];
+              }}
+              type="button"
+              onClick={() => openExploreComments(index)}
+              className={`grid size-12 place-items-center rounded-full border border-white/10 bg-white/[.08] text-white backdrop-blur-xl transition hover:bg-white/[.16] ${activeCommentIndex === index ? 'text-mvnt-orange ring-2 ring-mvnt-orange/35' : ''}`}
+              aria-label="댓글 보기"
+              aria-expanded={activeCommentIndex === index}
+            >
+              <MessageCircle size={21} />
+            </button>
+            <span className="-mt-2 text-[10px] font-black text-white/62">{getCommentsForReel(reel, index).length}</span>
             <button type="button" className="grid size-12 place-items-center rounded-full border border-white/10 bg-white/[.08] text-white backdrop-blur-xl transition hover:bg-white/[.16]" aria-label="Share">
               <Share2 size={21} />
             </button>
@@ -1600,8 +1757,8 @@ function DancePage() {
   ];
 
   return (
-    <section className="min-h-screen bg-[#070808] px-2 pb-5 pt-20 text-white sm:px-4">
-      <div className="mx-auto grid min-h-[calc(100vh-96px)] w-[min(1480px,100%)] gap-4 lg:grid-cols-[360px_1fr]">
+    <section className="min-h-screen bg-[#070808] px-4 pb-5 pt-20 text-white">
+      <div className="grid min-h-[calc(100vh-96px)] w-full gap-4 lg:grid-cols-[360px_1fr]">
         <aside className="relative overflow-hidden rounded-[26px] border border-white/10 bg-[#111315] shadow-[0_28px_90px_rgba(0,0,0,.42)]">
           <div className="flex border-b border-white/8 bg-white/[.025]">
             {['DANCE', 'DANCER'].map((tab, index) => (
@@ -1773,7 +1930,7 @@ function CommunityExamples({ sidebarExpanded }) {
 
   return (
     <>
-      <section className="relative z-10 mx-auto -mt-32 w-[min(1180px,100%)] pb-20" aria-label="Community example videos">
+      <section className="relative z-10 -mt-32 w-full px-4 pb-20" aria-label="Community example videos">
         <div className="mb-5">
           <h2 className="inline-flex items-center gap-3 text-[clamp(28px,3.6vw,48px)] font-black leading-none tracking-[-0.045em] text-white"><Flame className="text-mvnt-orange" size={34} fill="currentColor" /> Trend</h2>
           <div className="relative z-20 mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
