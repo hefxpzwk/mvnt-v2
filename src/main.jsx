@@ -239,7 +239,7 @@ function App() {
           {activePage === 'Projects' ? (
             <ProjectsPage />
           ) : activePage === 'Search' ? (
-            <SearchPage initialQuery={globalSearchQuery} onCreateFromQuery={createDanceFromQuery} />
+            <SearchPage initialQuery={globalSearchQuery} onCreateFromQuery={createDanceFromQuery} sidebarExpanded={sidebarExpanded} />
           ) : activePage === 'Explore' ? (
             <ExplorePage />
           ) : activePage === 'Dance' ? (
@@ -916,9 +916,15 @@ function AttachmentPreview({ description, metadata, onClear }) {
 
 
 
-function CommunityVideoCard({ video, index }) {
+function CommunityVideoCard({ video, index, onClick }) {
+  const Component = onClick ? 'button' : 'article';
   return (
-    <article className="group relative isolate overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950 shadow-[0_24px_70px_rgba(0,0,0,.35)]">
+    <Component
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      className={`group relative isolate overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] ${onClick ? 'outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45' : ''}`}
+      aria-label={onClick ? `${video.title} 상세 보기` : undefined}
+    >
       <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
       <AutoPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} preload={index < 3 ? 'auto' : 'metadata'} eager={index < 2} />
       <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -943,7 +949,7 @@ function CommunityVideoCard({ video, index }) {
           </div>
         </div>
       </div>
-    </article>
+    </Component>
   );
 }
 
@@ -1239,11 +1245,12 @@ function ProjectActionButton({ icon: Icon, label }) {
   );
 }
 
-function SearchPage({ initialQuery = '', onCreateFromQuery }) {
+function SearchPage({ initialQuery = '', onCreateFromQuery, sidebarExpanded }) {
   const [activeTag, setActiveTag] = useState('All');
   const [query, setQuery] = useState(initialQuery);
   const [searchSource, setSearchSource] = useState(null);
   const [searchSourceMetadata, setSearchSourceMetadata] = useState(null);
+  const [selectedVideo, setSelectedVideo] = useState(null);
   const trimmedQuery = query.trim();
   const visibleVideos = filterCommunityVideos({ activeTag, query });
   const searchSourceDescription = searchSource ? describeSource(searchSource) : null;
@@ -1302,6 +1309,7 @@ function SearchPage({ initialQuery = '', onCreateFromQuery }) {
   }, []);
 
   return (
+    <>
     <section className="min-h-screen px-2 pb-20 pt-20">
       <div className="mx-auto w-[min(1180px,100%)]">
         <div className="sticky top-16 z-20 mb-6 rounded-[18px] border border-white/10 bg-neutral-950/88 p-3 shadow-[0_18px_70px_rgba(0,0,0,.34)] backdrop-blur-2xl">
@@ -1372,7 +1380,14 @@ function SearchPage({ initialQuery = '', onCreateFromQuery }) {
         )}
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {visibleVideos.map((video, index) => <CommunityVideoCard key={`${video.src}-${index}`} video={video} index={index} />)}
+          {visibleVideos.map((video, index) => (
+            <CommunityVideoCard
+              key={`${video.src}-${index}`}
+              video={video}
+              index={index}
+              onClick={() => setSelectedVideo({ video, index })}
+            />
+          ))}
         </div>
         {visibleVideos.length === 0 && (
           <div className="rounded-[18px] border border-white/10 bg-white/[.035] px-6 py-14 text-center text-sm font-bold text-mvnt-muted">
@@ -1387,6 +1402,18 @@ function SearchPage({ initialQuery = '', onCreateFromQuery }) {
         )}
       </div>
     </section>
+
+    {selectedVideo && (
+      <TrendVideoModal
+        video={selectedVideo.video}
+        index={selectedVideo.index}
+        videos={visibleVideos}
+        onSelect={(video, index) => setSelectedVideo({ video, index })}
+        onClose={() => setSelectedVideo(null)}
+        sidebarExpanded={sidebarExpanded}
+      />
+    )}
+    </>
   );
 }
 
