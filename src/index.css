@@ -12,6 +12,8 @@
 html, body, #root {
   height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
+  background: #000;
 }
 body {
   margin: 0;
@@ -159,6 +161,8 @@ button { cursor: pointer; }
 .reels-feed {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
 }
 .reels-feed::-webkit-scrollbar {
   display: none;
@@ -173,7 +177,7 @@ button { cursor: pointer; }
 
 
 .music-identity-overlay {
-  pointer-events: none;
+  pointer-events: auto;
 }
 .music-identity-copy {
   filter: drop-shadow(0 3px 14px rgba(0,0,0,.72));

@@ -12,8 +12,10 @@ import {
   FileAudio,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   SlidersHorizontal,
   Eye,
+  EyeOff,
   FileText,
   Flame,
   Footprints,
@@ -445,8 +447,10 @@ function App() {
     return <SubscriptionPage onClose={() => navigate(defaultPage)} />;
   }
 
+  const isExplorePage = activePage === 'Explore';
+
   return (
-    <div className="h-screen overflow-hidden text-mvnt-text">
+    <div className={`h-screen overflow-hidden text-mvnt-text ${isExplorePage ? 'bg-black' : ''}`}>
       <Sidebar
         open={sidebarExpanded}
         textVisible={sidebarTextVisible}
@@ -455,7 +459,7 @@ function App() {
         onNavigate={navigate}
         onToggle={() => setSidebarOpen((value) => !value)}
       />
-      <main ref={mainRef} className={`mx-auto h-screen w-[min(1440px,calc(100vw-32px))] overflow-y-auto overscroll-contain transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
+      <main ref={mainRef} className={`${isExplorePage ? 'w-full bg-black' : 'mx-auto w-[min(1440px,calc(100vw-32px))]'} h-screen overflow-y-auto overscroll-contain transition-[padding] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'pl-[236px]' : 'pl-[88px]'}`}>
         <TopHeader
           activePage={activePage}
           sidebarExpanded={sidebarExpanded}
@@ -1203,39 +1207,36 @@ function ReelVideo({ reel, index }) {
   );
 }
 
-function MusicIdentityOverlay({ reel, index }) {
-  const cleanCreator = reel.creator.replace(/\s+/g, '');
-  const danceCount = (3.4 + index * 0.3).toFixed(1);
+function MusicIdentityOverlay({ reel, index, expanded, onExpandedChange }) {
   const hue = (index * 42 + 128) % 360;
 
   return (
     <aside
-      className="music-identity-overlay absolute left-[calc(50%+250px)] top-24 z-20 hidden w-[min(360px,calc(100vw-40px))] items-center gap-4 text-white md:flex"
+      className="music-identity-overlay group/music absolute left-[calc(50%+250px)] top-24 z-20 hidden h-24 w-[266px] text-white md:block"
       style={{ '--music-hue': hue }}
       aria-label={`${reel.title} sound source`}
+      onMouseEnter={() => onExpandedChange(true)}
+      onMouseLeave={() => onExpandedChange(false)}
+      onFocus={() => onExpandedChange(true)}
+      onBlur={() => onExpandedChange(false)}
     >
-      <div className="music-source-art relative grid size-20 shrink-0 place-items-center overflow-hidden rounded-[18px] text-white shadow-[0_18px_44px_rgba(0,0,0,.42)] ring-1 ring-white/15">
-        <div className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1 text-[8px] font-black leading-none">
-          <span className="grid h-3 w-4 place-items-center rounded-[3px] bg-white text-[hsl(var(--music-hue)_80%_34%)]"><Play size={7} fill="currentColor" strokeWidth={3} /></span>
+      <div className={`music-source-art absolute right-0 top-0 grid size-24 shrink-0 place-items-center overflow-hidden rounded-[22px] text-white shadow-[0_18px_44px_rgba(0,0,0,.42)] ring-1 ring-white/15 transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expanded ? '-translate-x-[170px] scale-[1.035]' : 'translate-x-0 scale-100'}`}>
+        <div className="absolute left-4 top-4 z-10 flex items-center gap-1.5 text-[11px] font-black leading-none">
+          <span className="grid h-4 w-6 place-items-center rounded-[4px] bg-white text-[hsl(var(--music-hue)_80%_34%)]"><Play size={8} fill="currentColor" strokeWidth={3} /></span>
           <span>YouTube</span>
         </div>
-        <span className="absolute left-2.5 top-6 z-10 text-[9px] font-semibold text-white/78">Audio Library</span>
-        <div className="music-speaker-beat absolute bottom-3 left-3 z-10 flex h-7 items-end gap-1" aria-hidden="true">
-          <span className="h-4 w-1.5 rounded-full bg-white" />
-          <span className="h-7 w-1.5 rounded-full bg-white" />
-          <span className="h-5 w-1.5 rounded-full bg-white" />
-          <span className="h-6 w-1.5 rounded-full bg-white" />
+        <span className="absolute left-4 top-9 z-10 text-[13px] font-semibold text-white/82">Audio Library</span>
+        <div className="music-speaker-beat absolute bottom-4 left-4 z-10 flex h-9 items-end gap-1.5" aria-hidden="true">
+          <span className="h-5 w-2 rounded-full bg-white" />
+          <span className="h-9 w-2 rounded-full bg-white" />
+          <span className="h-6 w-2 rounded-full bg-white" />
+          <span className="h-8 w-2 rounded-full bg-white" />
         </div>
-        <span className="music-source-note relative z-20 grid size-7 place-items-center rounded-full bg-white/16 text-base font-black text-white backdrop-blur-sm">♪</span>
+        <span className="music-source-note relative z-20 grid size-10 place-items-center rounded-full bg-white/16 text-xl font-black text-white backdrop-blur-sm">♪</span>
       </div>
-      <div className="music-identity-copy min-w-0 flex-1">
-        <span className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.22em] text-white/42">Sound Source</span>
-        <strong className="block truncate text-[clamp(22px,2.2vw,30px)] font-black leading-tight tracking-[-0.055em] text-white">{reel.title}</strong>
-        <span className="mt-2 flex min-w-0 items-center gap-2 text-[clamp(14px,1.25vw,18px)] font-extrabold leading-tight tracking-[-0.035em] text-white/72">
-          <span className="grid size-6 shrink-0 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-[10px] font-black text-black ring-1 ring-white/25">{reel.creator.slice(0, 1).toUpperCase()}</span>
-          <span className="truncate">@{cleanCreator} · {danceCount}만 dances</span>
-        </span>
-      </div>
+      <strong className={`music-hover-title pointer-events-none absolute left-[114px] top-1/2 w-[min(430px,calc(50vw-284px))] -translate-y-1/2 truncate text-left text-[clamp(30px,3.4vw,52px)] font-black leading-none tracking-[-0.075em] text-white drop-shadow-[0_5px_18px_rgba(0,0,0,.82)] transition duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expanded ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'}`}>
+        {reel.title}
+      </strong>
     </aside>
   );
 }
@@ -1258,7 +1259,7 @@ function ProjectsPage() {
       'Creator loop pack',
       'Night stage cut'
     ][index],
-    kind: ['생성한 춤', '가져와서 수정', '생성한 춤', '생성한 춤', '가져와서 수정', '생성한 춤', '가져와서 수정', '생성한 춤', '가져와서 수정', '생성한 춤', '가져와서 수정', '생성한 춤'][index],
+    kind: ['AI 생성', '리믹스', 'AI 생성', 'AI 생성', '리믹스', 'AI 생성', '리믹스', 'AI 생성', '리믹스', 'AI 생성', '리믹스', 'AI 생성'][index],
     visibility: ['비공개', '비공개', '비공개', '비공개', '공개', '비공개', '공개', '비공개', '비공개', '공개', '비공개', '공개'][index],
     action: ['계속 제작', '수정하기', '진행 보기', '제작 시작', '수정하기', '내보내기', '수정하기', '계속 제작', '내보내기', '제작 시작', '계속 제작', '내보내기'][index],
     source: ['YouTube', 'Audio', 'YouTube', 'SoundCloud', 'Upload', 'YouTube', 'Audio', 'Upload', 'YouTube', 'SoundCloud', 'Audio', 'YouTube'][index],
@@ -1269,8 +1270,10 @@ function ProjectsPage() {
   const [activeProjectFilter, setActiveProjectFilter] = useState('전체');
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [page, setPage] = useState(1);
-  const projectFilters = ['전체', '생성한 춤', '가져와서 수정'];
-  const visibleWorks = activeProjectFilter === '전체' ? works : works.filter((work) => work.kind === activeProjectFilter);
+  const [visibilityByTitle, setVisibilityByTitle] = useState({});
+  const projectFilters = ['전체', 'AI 생성', '리믹스'];
+  const worksWithVisibility = works.map((work) => ({ ...work, visibility: visibilityByTitle[work.workTitle] || work.visibility }));
+  const visibleWorks = activeProjectFilter === '전체' ? worksWithVisibility : worksWithVisibility.filter((work) => work.kind === activeProjectFilter);
   const totalPages = Math.max(1, Math.ceil(visibleWorks.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const pageStart = (currentPage - 1) * rowsPerPage;
@@ -1288,6 +1291,13 @@ function ProjectsPage() {
     setPage(1);
   }
 
+  function updateVisibility(workTitle, visibility) {
+    setVisibilityByTitle((value) => ({
+      ...value,
+      [workTitle]: visibility
+    }));
+  }
+
   return (
     <section className="min-h-screen px-2 pb-20 pt-20">
       <div className="mx-auto w-[min(1220px,100%)]">
@@ -1300,8 +1310,8 @@ function ProjectsPage() {
           </button>
         </div>
 
-        <div className="border-y border-white/10 bg-neutral-950/48">
-          <div className="border-b border-white/10 px-0 pt-3">
+        <div>
+          <div className="px-0 pt-3">
             <div className="flex gap-7 text-sm font-black">
               {projectFilters.map((filter) => {
                 const selected = activeProjectFilter === filter;
@@ -1314,7 +1324,7 @@ function ProjectsPage() {
                     aria-pressed={selected}
                   >
                     {filter}
-                    {selected && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-white" />}
+                    {selected && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,.22)]" />}
                   </button>
                 );
               })}
@@ -1341,7 +1351,7 @@ function ProjectsPage() {
 
           <div className="divide-y divide-white/10">
             {pageWorks.map((work, index) => (
-              <ProjectContentRow key={`${work.workTitle}-${work.src}`} work={work} index={index} />
+              <ProjectContentRow key={`${work.workTitle}-${work.src}`} work={work} index={index} onUpdateVisibility={updateVisibility} />
             ))}
           </div>
 
@@ -1365,7 +1375,7 @@ function ProjectsPage() {
 }
 
 
-function ProjectContentRow({ work, index }) {
+function ProjectContentRow({ work, index, onUpdateVisibility }) {
   const videoRef = useRef(null);
   const [hovering, setHovering] = useState(false);
 
@@ -1413,7 +1423,41 @@ function ProjectContentRow({ work, index }) {
       </div>
 
       <div className="flex items-center justify-between gap-3 lg:block"><span className="text-xs font-black text-white/38 lg:hidden">구분</span><span className="text-xs font-bold text-white/70">{work.kind}</span></div>
-      <div className="flex items-center justify-between gap-3 lg:block"><span className="text-xs font-black text-white/38 lg:hidden">공개 여부</span><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${work.visibility === '공개' ? 'bg-emerald-400/12 text-emerald-200' : 'bg-white/[.07] text-white/62'}`}>{work.visibility}</span></div>
+      <div className="flex items-center justify-between gap-3 lg:block">
+        <span className="text-xs font-black text-white/38 lg:hidden">공개 여부</span>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              type="button"
+              className="group/visibility inline-flex items-center gap-2 rounded-md px-1.5 py-1 text-xs font-bold text-white/70 outline-none transition hover:bg-white/[.06] hover:text-white focus-visible:bg-white/[.06]"
+              aria-label={`공개 여부 수정: ${work.workTitle}`}
+            >
+              {work.visibility === '공개' ? (
+                <Eye size={16} className="text-white/72 group-hover/visibility:text-emerald-200" />
+              ) : (
+                <EyeOff size={16} className="text-white/42 group-hover/visibility:text-white/80" />
+              )}
+              <span>{work.visibility}</span>
+              <ChevronDown size={13} className="text-white/36 transition group-hover/visibility:text-white/70" />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content side="bottom" align="start" sideOffset={6} className="z-50 w-[132px] rounded-xl border border-white/10 bg-neutral-950 p-1.5 text-mvnt-text shadow-2xl">
+              {['공개', '비공개'].map((visibility) => (
+                <DropdownMenu.Item
+                  key={visibility}
+                  onSelect={() => onUpdateVisibility(work.workTitle, visibility)}
+                  className="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-xs font-black outline-none hover:bg-white/10"
+                >
+                  {visibility === '공개' ? <Eye size={15} /> : <EyeOff size={15} />}
+                  <span>{visibility}</span>
+                  {work.visibility === visibility && <span className="ml-auto text-mvnt-orange">✓</span>}
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </div>
       <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">길이</span>{work.length}</div>
       <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/68 lg:block"><span className="text-white/38 lg:hidden">날짜</span>{work.updated}</div>
     </article>
@@ -1511,6 +1555,7 @@ function ExplorePage() {
   const feedRef = useRef(null);
   const [likedReels, setLikedReels] = useState({});
   const [scrollBounds, setScrollBounds] = useState({ canUp: false, canDown: true });
+  const [expandedMusicIndex, setExpandedMusicIndex] = useState(null);
   const reels = communityVideos.map((video, index) => ({
     ...video,
     comment: [
@@ -1550,7 +1595,7 @@ function ExplorePage() {
   }
 
   return (
-    <section ref={feedRef} className="reels-feed h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth bg-black">
+    <section ref={feedRef} className="reels-feed h-screen overflow-x-hidden overflow-y-auto overscroll-x-none overscroll-y-contain snap-y snap-mandatory scroll-smooth bg-black">
 
       <div className="fixed right-4 top-1/2 z-30 hidden -translate-y-1/2 flex-col gap-4 md:flex">
         {scrollBounds.canUp && (
@@ -1566,7 +1611,7 @@ function ExplorePage() {
       </div>
       {reels.map((reel, index) => (
         <article key={`${reel.src}-${index}`} className="relative ml-[max(16px,calc(50%-460px))] mr-auto flex min-h-screen w-[min(720px,100%)] snap-start items-stretch justify-center px-4 py-0">
-          <div className="relative isolate h-screen w-full max-w-[430px] overflow-hidden rounded-none border-x border-white/10 bg-neutral-950 shadow-[0_30px_90px_rgba(0,0,0,.55)]">
+          <div className={`relative isolate h-screen w-full max-w-[430px] overflow-hidden rounded-none border-x border-white/10 bg-neutral-950 shadow-[0_30px_90px_rgba(0,0,0,.55)] transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expandedMusicIndex === index ? '-translate-x-[170px]' : 'translate-x-0'}`}>
             <ReelVideo reel={reel} index={index} />
 
             <div className="absolute inset-x-0 bottom-0 z-10 p-4 pb-5">
@@ -1583,9 +1628,14 @@ function ExplorePage() {
             </div>
           </div>
 
-          <MusicIdentityOverlay reel={reel} index={index} />
+          <MusicIdentityOverlay
+            reel={reel}
+            index={index}
+            expanded={expandedMusicIndex === index}
+            onExpandedChange={(expanded) => setExpandedMusicIndex(expanded ? index : null)}
+          />
 
-          <div className="absolute bottom-8 right-[max(18px,calc(50%-300px))] z-20 flex flex-col items-center gap-3">
+          <div className={`absolute bottom-8 right-[max(18px,calc(50%-300px))] z-20 flex flex-col items-center gap-3 transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${expandedMusicIndex === index ? '-translate-x-[170px]' : 'translate-x-0'}`}>
             <button
               type="button"
               onClick={() => setLikedReels((value) => ({ ...value, [index]: !value[index] }))}
