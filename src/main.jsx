@@ -1850,30 +1850,55 @@ function ExplorePage() {
 function DancePage() {
   const [choiceOverlayVisible, setChoiceOverlayVisible] = useState(true);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [createComposerOpen, setCreateComposerOpen] = useState(false);
+  const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState(null);
+  const [activeProject, setActiveProject] = useState(null);
 
   const dismissChoiceOverlay = () => setChoiceOverlayVisible(false);
   const openTemplatePicker = () => setTemplatePickerOpen(true);
+  const openCreateComposer = () => setCreateComposerOpen(true);
+  const openProjectPicker = () => setProjectPickerOpen(true);
   const applyTemplate = (template) => {
     setActiveTemplate(template);
     setTemplatePickerOpen(false);
     setChoiceOverlayVisible(false);
   };
+  const loadProject = (project) => {
+    setActiveProject(project);
+    setProjectPickerOpen(false);
+    setChoiceOverlayVisible(false);
+  };
 
   return (
     <section className="relative h-screen overflow-hidden bg-white text-[#202020]" aria-label="댄스">
-      <div className={choiceOverlayVisible || templatePickerOpen ? 'dance-stage is-choosing' : 'dance-stage'}>
+      <div className={choiceOverlayVisible || templatePickerOpen || createComposerOpen || projectPickerOpen ? 'dance-stage is-choosing' : 'dance-stage'}>
         <Suspense fallback={<div className="three-dance-scene"><div className="three-dance-loading" role="status"><span className="three-dance-spinner" aria-hidden="true" /><span>Loading studio</span></div></div>}>
           <ThreeDanceScene />
         </Suspense>
       </div>
-      {activeTemplate && !choiceOverlayVisible && !templatePickerOpen && (
+      {(activeTemplate || activeProject) && !choiceOverlayVisible && !templatePickerOpen && !projectPickerOpen && !createComposerOpen && (
         <div className="dance-active-template" aria-live="polite">
           <Check size={15} strokeWidth={3} />
-          <span>{activeTemplate.title} 템플릿 적용됨</span>
+          <span>{activeProject ? `${activeProject.workTitle} 프로젝트 불러옴` : `${activeTemplate.title} 템플릿 적용됨`}</span>
         </div>
       )}
-      {choiceOverlayVisible && <DanceChoiceOverlay onTemplate={openTemplatePicker} onCreate={dismissChoiceOverlay} onUpload={dismissChoiceOverlay} />}
+      {choiceOverlayVisible && <DanceChoiceOverlay onTemplate={openTemplatePicker} onCreate={openCreateComposer} onLoad={openProjectPicker} />}
+      {createComposerOpen && (
+        <DanceCreateComposerModal
+          onClose={() => setCreateComposerOpen(false)}
+          onGenerate={() => {
+            setCreateComposerOpen(false);
+            setChoiceOverlayVisible(false);
+          }}
+        />
+      )}
+      {projectPickerOpen && (
+        <DanceProjectPicker
+          onClose={() => setProjectPickerOpen(false)}
+          onLoad={loadProject}
+        />
+      )}
       {templatePickerOpen && (
         <DanceTemplatePicker
           initialSelectedTemplate={activeTemplate}
@@ -1885,11 +1910,11 @@ function DancePage() {
   );
 }
 
-function DanceChoiceOverlay({ onTemplate, onCreate, onUpload }) {
+function DanceChoiceOverlay({ onTemplate, onCreate, onLoad }) {
   const choices = [
     { label: '템플릿', icon: FileText, onClick: onTemplate },
     { label: '창조', icon: Wand2, onClick: onCreate },
-    { label: '불러오기', icon: UploadCloud, upload: true, onClick: onUpload }
+    { label: '불러오기', icon: UploadCloud, onClick: onLoad }
   ];
 
   return (
@@ -1930,6 +1955,294 @@ function DanceChoiceOverlay({ onTemplate, onCreate, onUpload }) {
   );
 }
 
+function DanceProjectPicker({ onClose, onLoad }) {
+  const [query, setQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('전체');
+  const [selectedProject, setSelectedProject] = useState(null);
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleProjects = projectWorks.filter((work) => {
+    const matchesFilter = activeFilter === '전체' || work.kind === activeFilter;
+    const matchesQuery = !normalizedQuery || `${work.workTitle} ${work.source} ${work.style} ${work.creator}`.toLowerCase().includes(normalizedQuery);
+    return matchesFilter && matchesQuery;
+  });
+  const selectedKey = selectedProject ? `${selectedProject.workTitle}-${selectedProject.src}` : '';
+
+  function confirmLoad() {
+    if (!selectedProject) return;
+    onLoad(selectedProject);
+  }
+
+  return (
+    <div className="dance-project-modal-shell" role="dialog" aria-modal="true" aria-label="프로젝트 불러오기">
+      <div className="dance-project-modal-backdrop" aria-hidden="true" onClick={onClose} />
+      <section className="dance-project-modal">
+        <div className="dance-project-searchbar">
+          <Search size={18} />
+          <input
+            className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-mvnt-muted"
+            placeholder="프로젝트 검색"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            autoFocus
+          />
+          {query && (
+            <button type="button" className="grid size-7 place-items-center rounded-full text-white/46 transition hover:bg-white/10 hover:text-white" onClick={() => setQuery('')} aria-label="검색어 지우기">
+              <X size={15} strokeWidth={2.7} />
+            </button>
+          )}
+        </div>
+
+        <div className="dance-project-filter-row">
+          {projectFilters.map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              onClick={() => setActiveFilter(filter)}
+              className={`dance-project-filter ${activeFilter === filter ? 'is-active' : ''}`}
+              aria-pressed={activeFilter === filter}
+            >
+              {filter}
+            </button>
+          ))}
+          <span>{visibleProjects.length} projects</span>
+        </div>
+
+        <div className="dance-project-list subtle-scrollbar">
+          {visibleProjects.map((work) => {
+            const key = `${work.workTitle}-${work.src}`;
+            const selected = selectedKey === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`dance-project-row ${selected ? 'is-selected' : ''}`}
+                onClick={() => setSelectedProject((current) => {
+                  const currentKey = current ? `${current.workTitle}-${current.src}` : '';
+                  return currentKey === key ? null : work;
+                })}
+                aria-pressed={selected}
+              >
+                <span className="dance-project-thumb">
+                  <video src={work.src} muted loop playsInline preload="metadata" />
+                  <span>{work.length}</span>
+                </span>
+                <span className="min-w-0 flex-1 text-left">
+                  <strong>{work.workTitle}</strong>
+                  <small>{work.source} · {work.style} · {work.updated}</small>
+                </span>
+                <span className="dance-project-kind">{work.kind}</span>
+                {selected ? <Check className="dance-project-check" size={20} strokeWidth={3} /> : <ChevronRight size={18} strokeWidth={2.5} />}
+              </button>
+            );
+          })}
+          {visibleProjects.length === 0 && <div className="dance-project-empty">불러올 프로젝트가 없습니다.</div>}
+        </div>
+
+        <footer className="dance-project-footer">
+          <div className="dance-project-selected-label">
+            {selectedProject ? selectedProject.workTitle : '프로젝트를 선택해 주세요'}
+          </div>
+          <div className="dance-template-footer-actions">
+            <button type="button" className="dance-template-cancel" onClick={onClose}>취소</button>
+            <button type="button" className="dance-project-confirm" onClick={confirmLoad} disabled={!selectedProject}>확인</button>
+          </div>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+
+function DanceCreateComposerModal({ onClose, onGenerate }) {
+  const [mode, setMode] = useState('YouTube');
+  const [status, setStatus] = useState('Generate');
+  const [musicSource, setMusicSource] = useState(null);
+  const [sourceMetadata, setSourceMetadata] = useState(null);
+  const fileInputRef = useRef(null);
+  const statusTimersRef = useRef([]);
+  const musicValue = musicSource?.label || '';
+  const sourceDescription = musicSource ? describeSource(musicSource) : null;
+  const sourcePreview = sourceDescription ? { ...sourceDescription, Icon: sourceIconMap[sourceDescription.icon] || Link } : null;
+  const tokenUse = estimateTokenUse(musicSource, mode);
+
+  useEffect(() => {
+    if (musicSource) setMode((currentMode) => inferModeFromSource(musicSource, currentMode));
+  }, [musicSource]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSourceMetadata(null);
+    if (!sourceDescription) return undefined;
+
+    fetchSourceMetadata(sourceDescription).then((metadata) => {
+      if (!cancelled) setSourceMetadata(metadata);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceDescription?.kind, sourceDescription?.url, sourceDescription?.title]);
+
+  useEffect(() => () => {
+    statusTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+  }, []);
+
+  function generate(event) {
+    event?.preventDefault?.();
+    statusTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    setStatus('Thinking');
+    statusTimersRef.current = [
+      window.setTimeout(() => setStatus('Composing'), 420),
+      window.setTimeout(() => {
+        setStatus('Ready');
+        onGenerate?.(musicSource);
+      }, 980)
+    ];
+  }
+
+  function applyPastedText(text) {
+    const value = text?.trim();
+    if (!value) return false;
+    setMusicSource({ type: 'link', label: value });
+    setMode(inferModeFromSource(value, mode));
+    return true;
+  }
+
+  useEffect(() => {
+    const handlePaste = (event) => {
+      const text = event.clipboardData?.getData('text/plain');
+      if (!applyPastedText(text)) return;
+      event.preventDefault();
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [mode]);
+
+  return (
+    <div className="dance-create-modal-shell" role="dialog" aria-modal="true" aria-labelledby="dance-create-title">
+      <div className="dance-create-modal-backdrop" aria-hidden="true" onClick={onClose} />
+      <section className="stable-composer dance-create-composer overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950">
+            <button type="button" className="dance-create-close" onClick={onClose} aria-label="창조 닫기">
+              <X size={17} strokeWidth={2.6} />
+            </button>
+            <div className="flex gap-1 overflow-hidden border-b border-white/10 bg-[#111]/92 px-3 pt-2">
+              {modes.map(({ name, icon: Icon }) => {
+                const selected = mode === name;
+                return (
+                  <button
+                    type="button"
+                    key={name}
+                    onClick={() => setMode(name)}
+                    className={`relative inline-flex min-h-12 shrink-0 select-none items-center gap-2 rounded-t-[20px] px-5 text-xs font-black transition-colors ${selected ? 'bg-black text-mvnt-text shadow-[0_-10px_34px_rgba(255,138,0,.12)] after:absolute after:left-1/2 after:-bottom-[7px] after:size-3 after:-translate-x-1/2 after:rotate-45 after:border-b after:border-r after:border-white/10 after:bg-black' : 'text-mvnt-muted/70 hover:bg-white/[.035] hover:text-mvnt-text'}`}
+                    aria-current={selected ? 'true' : undefined}
+                  >
+                    <Icon size={14} strokeWidth={selected ? 2.8 : 2.35} />
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+            <form onSubmit={generate} className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-black px-4 py-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(event) => {
+                  applyFile(event.target.files?.[0]);
+                  event.target.value = '';
+                }}
+              />
+
+              <div className="flex min-w-0 items-center gap-3">
+                <button
+                  type="button"
+                  className="grid size-10 shrink-0 place-items-center rounded-full border border-white/12 bg-white/[.035] text-mvnt-muted transition hover:border-mvnt-orange/60 hover:text-mvnt-text"
+                  aria-label="Upload file"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Plus size={20} />
+                </button>
+                {sourcePreview ? (
+                  <AttachmentPreview
+                    description={sourcePreview}
+                    metadata={sourceMetadata}
+                    onClear={() => setMusicSource(null)}
+                  />
+                ) : (
+                  <input
+                    className="min-w-0 flex-1 bg-transparent text-base font-bold text-mvnt-text outline-none placeholder:text-mvnt-muted"
+                    placeholder="Drop music, paste a link, or upload any file"
+                    value={musicValue}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setMusicSource(value ? { type: 'link', label: value } : null);
+                      if (value) setMode(inferModeFromSource(value, mode));
+                    }}
+                    autoFocus
+                  />
+                )}
+              </div>
+
+              <button type="submit" className="dance-create-generate">
+                <span>{status}</span>
+                <span className="dance-create-generate-divider" aria-hidden="true" />
+                <Zap size={15} fill="currentColor" strokeWidth={0} />
+                <span>{tokenUse}</span>
+              </button>
+            </form>
+            <DanceCreateSourcePreview description={sourceDescription} metadata={sourceMetadata} />
+      </section>
+    </div>
+  );
+}
+
+
+function DanceCreateSourcePreview({ description, metadata }) {
+  if (!description) {
+    return (
+      <div className="dance-create-preview-placeholder">
+        <Clapperboard size={30} strokeWidth={2.2} />
+        <span>링크를 넣거나 파일을 업로드 하세요</span>
+      </div>
+    );
+  }
+
+  if (description.kind === 'youtube' && description.embedUrl) {
+    return (
+      <div className="dance-create-preview">
+        <iframe
+          title={metadata?.title || 'YouTube preview'}
+          src={description.embedUrl}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+
+  if (description.kind === 'soundcloud' && description.embedUrl) {
+    return (
+      <div className="dance-create-preview is-audio">
+        <iframe title={metadata?.title || 'SoundCloud preview'} src={description.embedUrl} allow="autoplay" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="dance-create-preview-card">
+      <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white/8 text-mvnt-yellow ring-1 ring-white/10">
+        {(sourceIconMap[description.icon] || Link)({ size: 21, strokeWidth: 2.4 })}
+      </span>
+      <span className="min-w-0">
+        <strong>{metadata?.title || description.title}</strong>
+        <small>{metadata?.name || description.detail}</small>
+      </span>
+    </div>
+  );
+}
+
+
 function DanceTemplatePicker({ initialSelectedTemplate, onClose, onConfirm }) {
   const [activeTag, setActiveTag] = useState('All');
   const [query, setQuery] = useState('');
@@ -1946,15 +2259,6 @@ function DanceTemplatePicker({ initialSelectedTemplate, onClose, onConfirm }) {
     <div className="dance-template-modal-shell" role="dialog" aria-modal="true" aria-labelledby="dance-template-title">
       <div className="dance-template-modal-backdrop" aria-hidden="true" onClick={onClose} />
       <section className="dance-template-modal">
-        <header className="dance-template-modal-header">
-          <div>
-            <h2 id="dance-template-title">템플릿 선택</h2>
-          </div>
-          <button type="button" className="dance-template-close" onClick={onClose} aria-label="템플릿 선택 닫기">
-            <X size={19} strokeWidth={2.6} />
-          </button>
-        </header>
-
         <div className="dance-template-searchbar">
           <Search size={19} />
           <input
@@ -2020,12 +2324,15 @@ function DanceTemplatePicker({ initialSelectedTemplate, onClose, onConfirm }) {
               </>
             )}
           </div>
-          <button type="button" className="dance-template-confirm" onClick={confirmTemplate} disabled={!selectedTemplate}>
-            <span>Generate</span>
-            <span className="dance-template-confirm-divider" aria-hidden="true" />
-            <Zap size={17} fill="currentColor" strokeWidth={2.8} />
-            <span>25</span>
-          </button>
+          <div className="dance-template-footer-actions">
+            <button type="button" className="dance-template-cancel" onClick={onClose}>취소</button>
+            <button type="button" className="dance-template-confirm" onClick={confirmTemplate} disabled={!selectedTemplate}>
+              <span>Generate</span>
+              <span className="dance-template-confirm-divider" aria-hidden="true" />
+              <Zap size={17} fill="currentColor" strokeWidth={2.8} />
+              <span>25</span>
+            </button>
+          </div>
         </footer>
       </section>
     </div>
@@ -2066,42 +2373,12 @@ function CommunityExamples({ sidebarExpanded }) {
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {visibleVideos.map((video, index) => (
-            <button
-              type="button"
+            <CommunityVideoCard
               key={`${video.src}-${index}`}
+              video={video}
+              index={index}
               onClick={() => setSelectedVideo({ video, index })}
-              className="group relative isolate overflow-hidden border border-white/10 bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45"
-              aria-label={`${video.title} 상세 보기`}
-            >
-              <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
-              {manualPlayback ? (
-        <HoverPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} selected={selected} />
-      ) : (
-        <AutoPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} preload={index < 3 ? 'auto' : 'metadata'} eager={index < 2} />
-      )}
-              <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/78 to-transparent p-4 pb-12">
-                  <div className="flex items-center gap-2">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-xs font-black text-black ring-2 ring-white/20">{video.creator.slice(0, 1).toUpperCase()}</span>
-                    <span className="min-w-0 truncate text-xs font-black text-white drop-shadow">{video.creator}</span>
-                  </div>
-                </div>
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/82 to-transparent p-4 pt-20">
-                  <div className="flex items-end justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-white/90 via-mvnt-yellow to-mvnt-orange text-black shadow-[0_10px_28px_rgba(0,0,0,.45)]">
-                        <span className="text-lg font-black leading-none">♪</span>
-                      </span>
-                      <div className="min-w-0">
-                        <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-white/54">Song</span>
-                        <h3 className="truncate text-base font-black tracking-[-0.03em] text-white">{video.title}</h3>
-                      </div>
-                    </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-white/12 px-2 py-1 text-xs font-black text-white/90 backdrop-blur-md"><Heart size={12} fill="currentColor" /> {video.likes}</span>
-                  </div>
-                </div>
-              </div>
-            </button>
+            />
           ))}
         </div>
         {visibleVideos.length === 0 && (
