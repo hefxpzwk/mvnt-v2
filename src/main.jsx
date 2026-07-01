@@ -101,6 +101,7 @@ function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [sidebarTextVisible, setSidebarTextVisible] = useState(true);
   const [activePage, setActivePage] = useState(() => readPageFromLocation(typeof window === 'undefined' ? null : window.location));
+  const [danceHeaderVisible, setDanceHeaderVisible] = useState(false);
   const [musicSource, setMusicSource] = useState(null);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [draggingMusic, setDraggingMusic] = useState(false);
@@ -119,6 +120,15 @@ function App() {
       window.removeEventListener('popstate', syncFromHash);
     };
   }, []);
+
+  useEffect(() => {
+    if (activePage === 'Dance') {
+      setSidebarOpen(false);
+      setDanceHeaderVisible(false);
+      return;
+    }
+    setDanceHeaderVisible(false);
+  }, [activePage]);
 
   useEffect(() => {
     if (sidebarOpen) {
@@ -228,10 +238,20 @@ function App() {
         onNavigate={navigate}
         onToggle={() => setSidebarOpen((value) => !value)}
       />
+      {activePage === 'Dance' && (
+        <div
+          className="dance-header-hover-zone"
+          aria-hidden="true"
+          onPointerEnter={() => setDanceHeaderVisible(true)}
+        />
+      )}
       <main ref={mainRef} className={`fixed inset-y-0 right-0 z-10 h-screen subtle-scrollbar overflow-y-auto overscroll-contain transition-[left] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${sidebarExpanded ? 'left-[216px]' : 'left-[72px]'}`}>
         <TopHeader
           activePage={activePage}
           sidebarExpanded={sidebarExpanded}
+          hiddenUntilHover={activePage === 'Dance'}
+          forceVisible={danceHeaderVisible}
+          onHiddenHeaderLeave={() => setDanceHeaderVisible(false)}
           onNavigate={navigate}
           onSearchSubmit={searchEverywhere}
           onCreateFromQuery={createDanceFromQuery}
@@ -256,7 +276,7 @@ function App() {
 }
 
 
-function TopHeader({ activePage, sidebarExpanded, onNavigate, onSearchSubmit, onCreateFromQuery }) {
+function TopHeader({ activePage, sidebarExpanded, hiddenUntilHover = false, forceVisible = false, onHiddenHeaderLeave, onNavigate, onSearchSubmit, onCreateFromQuery }) {
   const [headerQuery, setHeaderQuery] = useState('');
   function submitSearch(event) {
     event.preventDefault();
@@ -265,7 +285,13 @@ function TopHeader({ activePage, sidebarExpanded, onNavigate, onSearchSubmit, on
 
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-40 border-b border-white/[.075] bg-[#070707]/28 shadow-[0_18px_60px_rgba(0,0,0,.16)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[#070707]/22">
+    <header
+      className={`fixed inset-x-0 top-0 z-40 border-b border-white/[.075] bg-[#070707]/28 shadow-[0_18px_60px_rgba(0,0,0,.16)] backdrop-blur-2xl transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] supports-[backdrop-filter]:bg-[#070707]/22 ${hiddenUntilHover ? `dance-auto-header pointer-events-auto ${forceVisible ? 'is-visible' : ''}` : 'pointer-events-none'}`}
+      onPointerLeave={hiddenUntilHover ? onHiddenHeaderLeave : undefined}
+      onBlur={hiddenUntilHover ? (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) onHiddenHeaderLeave?.();
+      } : undefined}
+    >
       <form onSubmit={submitSearch} className={`pointer-events-none absolute inset-y-0 right-[300px] hidden items-center justify-center transition-[left] duration-300 ease-[cubic-bezier(.22,1,.36,1)] md:flex lg:right-[330px] ${sidebarExpanded ? 'left-[216px]' : 'left-[72px]'}`} role="search" aria-label="전역 검색">
         <div className={`pointer-events-auto group flex h-10 w-[min(420px,100%)] items-center overflow-hidden rounded-full border bg-black/24 text-mvnt-muted shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_14px_42px_rgba(0,0,0,.22)] backdrop-blur-2xl transition focus-within:border-mvnt-orange/55 focus-within:bg-black/34 focus-within:shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_16px_52px_rgba(255,138,0,.14)] ${activePage === 'Search' ? 'border-mvnt-orange/35' : 'border-white/14'}`}>
             <button type="submit" className="ml-3 grid size-6 shrink-0 place-items-center rounded-full text-white/62 transition hover:bg-white/[.12] hover:text-white group-focus-within:text-white/86" aria-label="검색">
@@ -1779,12 +1805,64 @@ function ExplorePage() {
 
 
 function DancePage() {
+  const [choiceOverlayVisible, setChoiceOverlayVisible] = useState(true);
+
+  const dismissChoiceOverlay = () => setChoiceOverlayVisible(false);
+
   return (
-    <section className="mt-12 h-[calc(100vh-48px)] overflow-hidden bg-white text-[#202020]" aria-label="댄스">
-      <Suspense fallback={<div className="three-dance-scene"><div className="three-dance-loading" role="status"><span className="three-dance-spinner" aria-hidden="true" /><span>Loading studio</span></div></div>}>
-        <ThreeDanceScene />
-      </Suspense>
+    <section className="relative h-screen overflow-hidden bg-white text-[#202020]" aria-label="댄스">
+      <div className={choiceOverlayVisible ? 'dance-stage is-choosing' : 'dance-stage'}>
+        <Suspense fallback={<div className="three-dance-scene"><div className="three-dance-loading" role="status"><span className="three-dance-spinner" aria-hidden="true" /><span>Loading studio</span></div></div>}>
+          <ThreeDanceScene />
+        </Suspense>
+      </div>
+      {choiceOverlayVisible && <DanceChoiceOverlay onSelect={dismissChoiceOverlay} />}
     </section>
+  );
+}
+
+function DanceChoiceOverlay({ onSelect }) {
+  const choices = [
+    { label: '템플릿', icon: FileText },
+    { label: '창조', icon: Wand2 },
+    { label: '불러오기', icon: UploadCloud, upload: true }
+  ];
+
+  return (
+    <div className="dance-choice-overlay" role="dialog" aria-modal="true" aria-label="댄스 시작 선택">
+      <div className="dance-choice-backdrop" aria-hidden="true" />
+      <div className="dance-choice-content">
+        <div className="dance-choice-copy">
+          <h1>댄스를 어떻게 시작할까요?</h1>
+          <p>템플릿으로 빠르게 시작하거나, 새 안무를 만들고, 저장된 작업을 불러올 수 있어요.</p>
+        </div>
+        <div className="dance-choice-actions">
+          {choices.map(({ label, icon: Icon, upload }) => {
+          const content = (
+            <>
+              <Icon size={24} strokeWidth={2.5} />
+              <span>{label}</span>
+            </>
+          );
+
+          if (upload) {
+            return (
+              <label key={label} className="dance-choice-button">
+                {content}
+                <input className="sr-only" type="file" accept=".json,.bvh,.fbx,.glb,.gltf" onChange={onSelect} />
+              </label>
+            );
+          }
+
+          return (
+            <button key={label} type="button" className="dance-choice-button" onClick={onSelect}>
+              {content}
+            </button>
+          );
+        })}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -2177,7 +2255,7 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/42 to-transparent" />
                 <div className="relative px-4 pb-3">
                   <div className="relative mb-2 h-1.5 rounded-full bg-white/18">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-mvnt-orange to-mvnt-yellow" style={{ width: `${Math.max(0, progress * 100)}%` }} />
+                    <div className="pointer-events-none absolute inset-y-0 left-0 rounded-full bg-white" style={{ width: `${Math.max(0, progress * 100)}%` }} />
                     <input
                       type="range"
                       min="0"

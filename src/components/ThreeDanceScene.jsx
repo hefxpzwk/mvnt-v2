@@ -241,10 +241,10 @@ export function ThreeDanceScene() {
     key.shadow.mapSize.set(4096, 4096);
     key.shadow.camera.near = 0.35;
     key.shadow.camera.far = 16;
-    key.shadow.camera.left = -5.5;
-    key.shadow.camera.right = 5.5;
-    key.shadow.camera.top = 6;
-    key.shadow.camera.bottom = -3;
+    key.shadow.camera.left = -8;
+    key.shadow.camera.right = 8;
+    key.shadow.camera.top = 8;
+    key.shadow.camera.bottom = -8;
     key.shadow.bias = -0.00018;
     key.shadow.normalBias = 0.018;
     key.shadow.radius = 5;
@@ -270,8 +270,23 @@ export function ThreeDanceScene() {
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.018;
-    floor.receiveShadow = true;
+    floor.receiveShadow = false;
     scene.add(floor);
+
+    const shadowCatcher = new THREE.Mesh(
+      new THREE.PlaneGeometry(48, 48),
+      new THREE.ShadowMaterial({
+        color: 0x000000,
+        opacity: 0.34,
+        transparent: true,
+        depthWrite: false
+      })
+    );
+    shadowCatcher.rotation.x = -Math.PI / 2;
+    shadowCatcher.position.y = -0.016;
+    shadowCatcher.receiveShadow = true;
+    shadowCatcher.renderOrder = 1;
+    scene.add(shadowCatcher);
 
     const contactShadow = new THREE.Mesh(
       new THREE.PlaneGeometry(3.1, 1.18),
@@ -341,8 +356,11 @@ export function ThreeDanceScene() {
       controls.update();
       floor.position.x = controls.target.x;
       floor.position.z = controls.target.z;
+      shadowCatcher.position.x = controls.target.x;
+      shadowCatcher.position.z = controls.target.z;
 
-      key.target.position.set(0, 1.08, 0);
+      key.position.set(controls.target.x + 4.2, 6.4, controls.target.z + 4.8);
+      key.target.position.set(controls.target.x, 1.08, controls.target.z);
       key.target.updateMatrixWorld();
       contactShadow.scale.setScalar(1 + Math.sin(elapsed * 4.7) * 0.026);
       effect.render(scene, camera);

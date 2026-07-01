@@ -17,15 +17,20 @@ export const legacyRouteAliases = {
 export const routeIds = [...sideNavItems.map((item) => item.id), 'Credits'];
 
 export function normalizeRouteId(value) {
-  const normalizedValue = legacyRouteAliases[value] || value;
-  return routeIds.includes(normalizedValue) ? normalizedValue : defaultPage;
+  const rawValue = typeof value === 'string' ? value.trim() : value;
+  const aliasValue = legacyRouteAliases[rawValue] || rawValue;
+  const canonicalValue = routeIds.find((routeId) => routeId.toLowerCase() === String(aliasValue).toLowerCase());
+  return canonicalValue || defaultPage;
 }
 
 export function readPageFromLocation(location) {
   if (!location) return defaultPage;
 
   const path = location.pathname?.replace(/^\/+|\/+$/g, '') || '';
-  if (path.toLowerCase() === 'credits') return 'Credits';
+  if (path) {
+    const pageFromPath = normalizeRouteId(path);
+    if (pageFromPath !== defaultPage || path.toLowerCase() === defaultPage.toLowerCase()) return pageFromPath;
+  }
 
   try {
     const hashValue = decodeURIComponent((location.hash || '').replace(/^#\/?/, ''));
