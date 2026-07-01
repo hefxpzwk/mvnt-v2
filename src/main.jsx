@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -30,7 +30,6 @@ import {
   Music2,
   MessageCircle,
   Search,
-  Send,
   Share2,
   LogOut,
   PanelLeftClose,
@@ -59,6 +58,9 @@ import { communityTags, communityVideos, filterCommunityVideos, getCommunityVide
 import { projectFilters, projectWorks } from './lib/projects.js';
 import { describeSource, estimateTokenUse, fetchSourceMetadata, getMusicPayload, hasDroppableMusic, inferModeFromSource } from './lib/source.js';
 
+
+
+const ThreeDanceScene = lazy(() => import('./components/ThreeDanceScene.jsx').then((module) => ({ default: module.ThreeDanceScene })));
 
 const browserChromeTheme = '#050505';
 
@@ -214,6 +216,7 @@ function App() {
     return <SubscriptionPage onClose={() => navigate(defaultPage)} />;
   }
 
+
   return (
     <div className="relative isolate h-screen overflow-hidden text-mvnt-text">
       <div className="app-background-gradient" aria-hidden="true" />
@@ -235,7 +238,7 @@ function App() {
         />
         <div className="relative isolate z-0">
           {activePage === 'Projects' ? (
-            <ProjectsPage />
+            <ProjectsPage sidebarExpanded={sidebarExpanded} />
           ) : activePage === 'Search' ? (
             <SearchPage initialQuery={globalSearchQuery} onCreateFromQuery={createDanceFromQuery} sidebarExpanded={sidebarExpanded} />
           ) : activePage === 'Explore' ? (
@@ -1034,11 +1037,12 @@ function MusicIdentityOverlay({ reel, index }) {
   );
 }
 
-function ProjectsPage() {
+function ProjectsPage({ sidebarExpanded }) {
   const [activeProjectFilter, setActiveProjectFilter] = useState('전체');
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [page, setPage] = useState(1);
   const [visibilityByTitle, setVisibilityByTitle] = useState({});
+  const [selectedProjectVideo, setSelectedProjectVideo] = useState(null);
   const worksWithVisibility = projectWorks.map((work) => ({ ...work, visibility: visibilityByTitle[work.workTitle] || work.visibility }));
   const visibleWorks = activeProjectFilter === '전체' ? worksWithVisibility : worksWithVisibility.filter((work) => work.kind === activeProjectFilter);
   const totalPages = Math.max(1, Math.ceil(visibleWorks.length / rowsPerPage));
@@ -1047,6 +1051,7 @@ function ProjectsPage() {
   const pageWorks = visibleWorks.slice(pageStart, pageStart + rowsPerPage);
   const rangeStart = visibleWorks.length ? pageStart + 1 : 0;
   const rangeEnd = Math.min(pageStart + rowsPerPage, visibleWorks.length);
+  const projectPreviewVideos = visibleWorks.map((work) => ({ ...work, title: work.workTitle }));
 
   function selectFilter(filter) {
     setActiveProjectFilter(filter);
@@ -1118,7 +1123,13 @@ function ProjectsPage() {
 
           <div className="divide-y divide-white/10">
             {pageWorks.map((work, index) => (
-              <ProjectContentRow key={`${work.workTitle}-${work.src}`} work={work} index={index} onUpdateVisibility={updateVisibility} />
+              <ProjectContentRow
+                key={`${work.workTitle}-${work.src}`}
+                work={work}
+                index={index}
+                onOpen={() => setSelectedProjectVideo({ video: { ...work, title: work.workTitle }, index: pageStart + index })}
+                onUpdateVisibility={updateVisibility}
+              />
             ))}
           </div>
 
@@ -1137,12 +1148,22 @@ function ProjectsPage() {
           </div>
         </div>
       </div>
+      {selectedProjectVideo && (
+        <TrendVideoModal
+          video={selectedProjectVideo.video}
+          index={selectedProjectVideo.index}
+          videos={projectPreviewVideos}
+          onSelect={(video, index) => setSelectedProjectVideo({ video, index })}
+          onClose={() => setSelectedProjectVideo(null)}
+          sidebarExpanded={sidebarExpanded}
+        />
+      )}
     </section>
   );
 }
 
 
-function ProjectContentRow({ work, index, onUpdateVisibility }) {
+function ProjectContentRow({ work, index, onOpen, onUpdateVisibility }) {
   const videoRef = useRef(null);
   function startPreview() {
     const video = videoRef.current;
@@ -1159,21 +1180,32 @@ function ProjectContentRow({ work, index, onUpdateVisibility }) {
 
   return (
     <article
-      className="group grid gap-4 py-4 transition hover:bg-white/[.035] lg:grid-cols-[minmax(430px,1fr)_130px_120px_100px_110px] lg:items-center"
+      className="group grid gap-4 py-4 transition hover:bg-white/[.035] focus-within:bg-white/[.035] lg:grid-cols-[minmax(430px,1fr)_130px_120px_100px_110px] lg:items-center"
       onMouseEnter={startPreview}
       onMouseLeave={stopPreview}
       onFocus={startPreview}
       onBlur={stopPreview}
     >
-      <div className="grid min-w-0 grid-cols-[150px_1fr] gap-3">
-        <div className="relative isolate aspect-video overflow-hidden rounded-lg bg-black ring-1 ring-white/10">
+      <div className="grid min-w-0 grid-cols-[150px_1fr] gap-3 rounded-lg">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="relative isolate aspect-video overflow-hidden rounded-lg bg-black text-left outline-none ring-1 ring-white/10 focus-visible:ring-2 focus-visible:ring-mvnt-orange/45"
+          aria-label={`${work.workTitle} 미리보기 열기`}
+        >
           <video ref={videoRef} className="size-full object-cover" src={work.src} muted loop playsInline preload="metadata" />
           <div className="pointer-events-none absolute inset-0 bg-black/0 transition group-hover:bg-black/10" />
           <span className="absolute bottom-1.5 right-1.5 rounded bg-black/78 px-1.5 py-0.5 text-[10px] font-black text-white">{work.length}</span>
-        </div>
+        </button>
         <div className="min-w-0 py-1">
-          <h2 className="truncate text-xs font-black text-white">{work.workTitle}</h2>
-          <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-relaxed text-mvnt-muted">{work.source} 소스 · {work.style}</p>
+          <button
+            type="button"
+            onClick={onOpen}
+            className="block w-full min-w-0 rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-mvnt-orange/45"
+          >
+            <h2 className="truncate text-xs font-black text-white">{work.workTitle}</h2>
+            <p className="mt-1 line-clamp-2 text-[11px] font-bold leading-relaxed text-mvnt-muted">{work.source} 소스 · {work.style}</p>
+          </button>
           <div className="mt-2 flex gap-1.5 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
             <ProjectActionButton icon={Pencil} label="수정" />
             <ProjectActionButton icon={Type} label="제목 수정" />
@@ -1189,6 +1221,7 @@ function ProjectContentRow({ work, index, onUpdateVisibility }) {
           <DropdownMenu.Trigger asChild>
             <button
               type="button"
+              onClick={(event) => event.stopPropagation()}
               className="group/visibility inline-flex items-center gap-2 rounded-md px-1.5 py-1 text-[11px] font-bold text-white/70 outline-none transition hover:bg-white/[.06] hover:text-white focus-visible:bg-white/[.06]"
               aria-label={`공개 여부 수정: ${work.workTitle}`}
             >
@@ -1206,6 +1239,7 @@ function ProjectContentRow({ work, index, onUpdateVisibility }) {
               {['공개', '비공개'].map((visibility) => (
                 <DropdownMenu.Item
                   key={visibility}
+                  onClick={(event) => event.stopPropagation()}
                   onSelect={() => onUpdateVisibility(work.workTitle, visibility)}
                   className="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-xs font-black outline-none hover:bg-white/10"
                 >
@@ -1226,7 +1260,7 @@ function ProjectContentRow({ work, index, onUpdateVisibility }) {
 
 function ProjectActionButton({ icon: Icon, label }) {
   return (
-    <button type="button" className="group/action relative grid size-7 place-items-center rounded-full text-white/48 transition hover:bg-white/[.08] hover:text-white" aria-label={label}>
+    <button type="button" onClick={(event) => event.stopPropagation()} className="group/action relative grid size-7 place-items-center rounded-full text-white/48 transition hover:bg-white/[.08] hover:text-white" aria-label={label}>
       <Icon size={14} strokeWidth={2.4} />
       <span className="pointer-events-none absolute left-1/2 top-[calc(100%+7px)] z-30 -translate-x-1/2 whitespace-nowrap rounded-md bg-white px-2 py-1 text-[10px] font-black text-black opacity-0 shadow-xl transition group-hover/action:opacity-100">
         {label}
@@ -1745,181 +1779,13 @@ function ExplorePage() {
 
 
 function DancePage() {
-  const [activeGenre, setActiveGenre] = useState('음악 분석');
-  const [activePreset, setActivePreset] = useState('Studio');
-  const danceGenres = ['기본', '음악 분석', '커스텀'];
-  const presets = ['Studio', 'Sky', 'Peach', 'Mint', 'Night'];
-  const motionModes = ['3D Motion', '2D'];
-  const qualitySettings = [
-    { label: 'Tracking', value: 'OFF' },
-    { label: 'Skeleton', value: 'OFF' },
-    { label: 'Toon', value: 'ON', active: true }
-  ];
-
   return (
-    <section className="min-h-screen bg-[#070808] px-4 pb-5 pt-20 text-white">
-      <div className="grid min-h-[calc(100vh-96px)] w-full gap-4 lg:grid-cols-[360px_1fr]">
-        <aside className="relative overflow-hidden rounded-[26px] border border-white/10 bg-[#111315] shadow-[0_28px_90px_rgba(0,0,0,.42)]">
-          <div className="flex border-b border-white/8 bg-white/[.025]">
-            {['DANCE', 'DANCER'].map((tab, index) => (
-              <button
-                key={tab}
-                type="button"
-                className={`relative flex min-h-[62px] flex-1 items-center justify-center gap-2 text-sm font-black tracking-[-0.02em] transition ${index === 0 ? 'bg-[#15181a] text-white' : 'text-white/36 hover:text-white/70'}`}
-              >
-                {index === 0 ? <Music2 size={17} /> : <UserRound size={17} />}
-                {tab}
-                {index === 1 && <span className="rounded-md bg-mvnt-yellow/18 px-1.5 py-0.5 text-[10px] text-mvnt-yellow">3D</span>}
-                {index === 0 && <span className="absolute inset-x-8 bottom-0 h-0.5 rounded-full bg-white" />}
-              </button>
-            ))}
-          </div>
-
-          <div className="p-5">
-            <div className="rounded-[24px] border border-white/10 bg-[#181b1e] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
-              <div>
-                <h1 className="text-lg font-black tracking-[-0.04em]">댄스 음악 등록하기</h1>
-                <p className="mt-1 text-xs font-bold leading-relaxed text-white/48">어떤 음악이든 좋아요. 새로운 춤을 만들어봐요!</p>
-              </div>
-
-              <div className="mt-5 rounded-[22px] border border-dashed border-white/14 bg-[#202326] p-4 text-center shadow-[inset_0_0_38px_rgba(255,255,255,.025)]">
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { label: '링크 붙여넣기', icon: Link },
-                    { label: '업로드', icon: UploadCloud },
-                    { label: '드래그', icon: MousePointerIcon }
-                  ].map(({ label, icon: Icon }) => (
-                    <button key={label} type="button" className="group grid min-h-[82px] place-items-center rounded-2xl bg-white/[.035] text-white/58 transition hover:bg-white/[.07] hover:text-white">
-                      <span className="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[.04] transition group-hover:border-mvnt-orange/40 group-hover:text-mvnt-orange">
-                        <Icon size={19} />
-                      </span>
-                      <span className="text-[11px] font-black">{label}</span>
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-4 text-[11px] font-bold leading-relaxed text-white/36">지원 링크: YouTube, SoundCloud, Suno<br />지원 파일: mp3, wav</p>
-              </div>
-
-              <div className="mt-6 border-t border-white/8 pt-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-black tracking-[-0.03em]">댄스 장르</h2>
-                  <button type="button" className="grid size-7 place-items-center rounded-lg bg-white/[.05] text-white/42 transition hover:text-white" aria-label="장르 설정">
-                    <SlidersHorizontal size={14} />
-                  </button>
-                </div>
-                <div className="grid grid-cols-3 rounded-2xl border border-white/10 bg-white/[.035] p-1">
-                  {danceGenres.map((genre) => {
-                    const selected = activeGenre === genre;
-                    return (
-                      <button
-                        key={genre}
-                        type="button"
-                        onClick={() => setActiveGenre(genre)}
-                        className={`min-h-10 rounded-xl text-[11px] font-black transition ${selected ? 'bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,.12)]' : 'text-white/48 hover:text-white'}`}
-                      >
-                        {genre}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <button type="button" className="mt-5 flex min-h-16 w-full items-center justify-center gap-2 rounded-[22px] bg-gradient-to-r from-mvnt-orange via-mvnt-yellow to-[#dcff16] text-base font-black text-black shadow-[0_18px_54px_rgba(255,184,71,.24)] transition hover:brightness-110">
-              <Wand2 size={20} /> Make Dance!
-            </button>
-
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              {[
-                { label: '8s', icon: Play },
-                { label: 'Auto', icon: Check },
-                { label: '1080p', icon: Sparkles }
-              ].map(({ label, icon: Icon }) => (
-                <button key={label} type="button" className="flex min-h-12 items-center justify-center gap-1.5 rounded-2xl bg-white/[.055] text-xs font-black text-white/72 transition hover:bg-white/[.08] hover:text-white">
-                  <Icon size={15} /> {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        <main className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#f7f7f4] text-[#151515] shadow-[0_30px_100px_rgba(0,0,0,.45)]">
-          <div className="absolute inset-x-0 top-0 z-20 flex flex-wrap items-center justify-between gap-3 p-5">
-            <div className="inline-flex rounded-2xl bg-black/10 p-1 shadow-[inset_0_1px_2px_rgba(0,0,0,.12)]">
-              {motionModes.map((mode, index) => (
-                <button key={mode} type="button" className={`min-h-11 rounded-xl px-5 text-sm font-black transition ${index === 0 ? 'bg-mvnt-orange text-black shadow-[0_10px_24px_rgba(255,138,0,.28)]' : 'text-black/34 hover:text-black/60'}`}>
-                  {mode}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              {qualitySettings.map((item) => (
-                <button key={item.label} type="button" className={`min-h-10 rounded-xl border px-3 text-xs font-black shadow-sm transition ${item.active ? 'border-white bg-white text-black' : 'border-black/10 bg-black/[.06] text-black/70 hover:bg-black/[.09]'}`}>
-                  {item.label} {item.value}
-                </button>
-              ))}
-              <span className="mx-1 h-7 w-px bg-black/10" />
-              {[FileAudio, UploadCloud, Image].map((Icon, index) => (
-                <button key={index} type="button" className={`grid size-10 place-items-center rounded-xl border border-black/10 shadow-sm transition ${index === 2 ? 'bg-mvnt-orange text-black' : 'bg-black/[.06] text-black/70 hover:bg-black/[.09]'}`} aria-label="studio tool">
-                  <Icon size={17} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="relative grid min-h-[720px] place-items-center px-6 pb-24 pt-24 lg:min-h-full">
-            <div className="absolute inset-x-0 bottom-0 h-[34%] bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,.10),transparent_55%),linear-gradient(180deg,transparent,#e6e2dc)]" />
-            <div className="absolute left-1/2 top-[25%] z-10 -translate-x-1/2 rounded-[26px] border-[4px] border-[#171717] bg-white px-7 py-3 text-sm font-black shadow-[0_14px_34px_rgba(0,0,0,.12)] after:absolute after:left-1/2 after:top-[calc(100%-2px)] after:size-4 after:-translate-x-1/2 after:rotate-45 after:border-b-[4px] after:border-r-[4px] after:border-[#171717] after:bg-white">
-              new song, new personality unlocked ✨
-            </div>
-
-            <div className="relative z-10 mt-20 h-[430px] w-[270px]">
-              <div className="absolute left-1/2 top-[402px] h-8 w-40 -translate-x-1/2 rounded-full bg-black/16 blur-sm" />
-              <div className="absolute left-[112px] top-0 size-16 rounded-full border-[3px] border-[#202020] bg-[#f0c17f] shadow-[inset_-12px_-8px_0_rgba(176,112,48,.16)]" />
-              <div className="absolute left-[92px] top-[58px] h-[162px] w-[92px] rounded-[44px_44px_34px_34px] border-[3px] border-[#202020] bg-[#e8b66f] shadow-[inset_-18px_-8px_0_rgba(174,103,44,.18)]">
-                <span className="absolute left-4 top-0 h-full w-0.5 bg-white/70" />
-                <span className="absolute right-5 top-2 h-[88%] w-0.5 bg-white/60" />
-                <span className="absolute left-2 top-12 h-0.5 w-[82%] bg-white/60" />
-                <span className="absolute left-3 top-24 h-0.5 w-[74%] bg-white/55" />
-              </div>
-              <div className="absolute left-[38px] top-[72px] h-20 w-24 origin-right -rotate-[42deg] rounded-full border-[3px] border-[#202020] bg-[#e8b66f]" />
-              <div className="absolute left-[24px] top-[50px] h-12 w-9 rotate-[18deg] rounded-full border-[3px] border-[#202020] bg-[#f0c17f]" />
-              <div className="absolute right-[24px] top-[72px] h-20 w-24 origin-left rotate-[42deg] rounded-full border-[3px] border-[#202020] bg-[#e8b66f]" />
-              <div className="absolute right-[10px] top-[54px] h-12 w-9 -rotate-[18deg] rounded-full border-[3px] border-[#202020] bg-[#f0c17f]" />
-              <div className="absolute left-[94px] top-[208px] h-44 w-10 -rotate-[7deg] rounded-full border-[3px] border-[#202020] bg-[#e8b66f]" />
-              <div className="absolute left-[83px] top-[356px] h-18 w-12 -rotate-[3deg] rounded-full border-[3px] border-[#202020] bg-[#f0c17f]" />
-              <div className="absolute right-[82px] top-[204px] h-44 w-10 rotate-[16deg] rounded-full border-[3px] border-[#202020] bg-[#e8b66f]" />
-              <div className="absolute right-[62px] top-[356px] h-18 w-12 rotate-[8deg] rounded-full border-[3px] border-[#202020] bg-[#f0c17f]" />
-            </div>
-          </div>
-
-          <div className="absolute inset-x-5 bottom-5 z-20 rounded-[22px] border border-black/8 bg-white/88 p-3 shadow-[0_18px_58px_rgba(0,0,0,.14)] backdrop-blur-xl">
-            <div className="flex flex-wrap items-center gap-2">
-              {presets.map((preset) => {
-                const selected = activePreset === preset;
-                return (
-                  <button key={preset} type="button" onClick={() => setActivePreset(preset)} className={`min-h-9 rounded-xl px-3 text-xs font-black transition ${selected ? 'bg-mvnt-orange text-black shadow-[0_8px_18px_rgba(255,138,0,.25)]' : 'bg-black/[.055] text-black/45 hover:text-black'}`}>
-                    {preset}
-                  </button>
-                );
-              })}
-              <span className="ml-2 text-xs font-black text-black/38">Light Rotation</span>
-              <div className="h-5 min-w-[180px] flex-1 rounded-full bg-black/12 p-0.5 shadow-[inset_0_1px_2px_rgba(0,0,0,.12)]">
-                <div className="ml-[48%] size-4 rounded-full bg-mvnt-orange ring-2 ring-white" />
-              </div>
-              <span className="text-xs font-black text-black/38">0°</span>
-              <button type="button" className="min-h-9 rounded-xl bg-black/[.08] px-3 text-xs font-black text-black/70">Fixed</button>
-            </div>
-          </div>
-        </main>
-      </div>
+    <section className="mt-12 h-[calc(100vh-48px)] overflow-hidden bg-white text-[#202020]" aria-label="댄스">
+      <Suspense fallback={<div className="three-dance-scene"><div className="three-dance-loading" role="status"><span className="three-dance-spinner" aria-hidden="true" /><span>Loading studio</span></div></div>}>
+        <ThreeDanceScene />
+      </Suspense>
     </section>
   );
-}
-
-function MousePointerIcon(props) {
-  return <Send {...props} className={`-rotate-45 ${props.className || ''}`} />;
 }
 
 function CommunityExamples({ sidebarExpanded }) {
