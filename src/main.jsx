@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   SlidersHorizontal,
   Eye,
   EyeOff,
@@ -1079,28 +1080,100 @@ function ReelVideo({ reel, index }) {
   );
 }
 
-function MusicIdentityOverlay({ reel, index }) {
+const exploreMusicCatalog = [
+  { title: 'Lemon Tang', artist: '@hearts2hearts.official', usage: 'Shorts 동영상 2.1만개' },
+  { title: 'Milkshake', artist: '@kelis.official', usage: 'Shorts 동영상 8,432개' },
+  { title: 'GO', artist: '@blackpinkofficial', usage: 'Shorts 동영상 3.4만개' },
+  { title: 'Krapow', artist: '@omega_sapien', usage: 'Shorts 동영상 6,108개' },
+  { title: 'Golden', artist: '@mvnt.picks', usage: 'Shorts 동영상 1.2만개' }
+];
+
+function getExploreMusicInfo(reel, index) {
+  const fallback = exploreMusicCatalog[index % exploreMusicCatalog.length];
+  const [rawTitle, rawArtist] = reel.title.split(' - ');
+  return {
+    ...fallback,
+    title: fallback.title || rawArtist || rawTitle || reel.title,
+    artist: fallback.artist || `@${reel.creator.replace(/\s+/g, '').toLowerCase()}`,
+    artworkSrc: reel.src
+  };
+}
+
+function getExploreMusicVideos(reels, activeIndex) {
+  return [0, 1, 2, 3].map((offset) => reels[(activeIndex + offset) % reels.length]);
+}
+
+function MusicIdentityOverlay({ reel, index, isActive, onOpen }) {
   const hue = (index * 42 + 128) % 360;
 
   return (
-    <aside
-      className="music-identity-overlay pointer-events-none absolute left-[max(18px,calc(50%-330px))] top-24 z-20 hidden w-20 text-white md:block"
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`music-identity-overlay music-source-art relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-[14px] border border-white/10 text-white shadow-[0_18px_44px_rgba(0,0,0,.42)] ring-1 ring-white/15 transition hover:brightness-110 ${isActive ? 'outline outline-2 outline-mvnt-yellow/70' : ''}`}
       style={{ '--music-hue': hue }}
-      aria-label={`${reel.title} sound source`}
+      aria-label={`${reel.title} 음악 상세 보기`}
+      aria-expanded={isActive}
     >
-      <div className="music-source-art relative grid aspect-square w-full shrink-0 place-items-center overflow-hidden rounded-[20px] text-white shadow-[0_18px_44px_rgba(0,0,0,.42)] ring-1 ring-white/15">
-        <div className="absolute left-3 top-3 z-10 flex items-center gap-1 text-[9px] font-black leading-none">
-          <span className="grid h-4 w-6 place-items-center rounded-[5px] bg-white text-[hsl(var(--music-hue)_80%_34%)]"><Play size={8} fill="currentColor" strokeWidth={3} /></span>
-          <span>YouTube</span>
+      <span className="absolute left-1.5 top-1.5 z-10 grid size-3.5 place-items-center rounded-full bg-white text-[hsl(var(--music-hue)_80%_34%)] shadow-sm">
+        <Play size={7} fill="currentColor" strokeWidth={3} />
+      </span>
+      <Music2 className="relative z-20 drop-shadow-[0_5px_18px_rgba(0,0,0,.55)]" size={22} strokeWidth={2.5} />
+      <span className="sr-only">음악 상세 열기</span>
+    </button>
+  );
+}
+
+function ExploreMusicPanel({ reel, index, reels, onClose }) {
+  const music = getExploreMusicInfo(reel, index);
+  const usedVideos = getExploreMusicVideos(reels, index);
+
+  return (
+    <aside className="explore-music-panel fixed inset-x-4 bottom-4 top-12 z-[1000] flex overflow-hidden rounded-none border border-white/10 bg-[#080808]/94 text-white shadow-[0_24px_90px_rgba(0,0,0,.62)] backdrop-blur-2xl xl:bottom-0 xl:left-auto xl:right-[84px] xl:w-[430px] xl:border-y-0" role="dialog" aria-label="음악 상세">
+      <div className="relative flex min-h-0 w-full flex-col">
+        <button type="button" onClick={onClose} className="absolute right-5 top-5 z-20 grid size-10 place-items-center rounded-full border border-white/10 bg-white/[.06] text-white/72 backdrop-blur-xl transition hover:bg-white/[.12] hover:text-white" aria-label="음악 상세 닫기">
+          <X size={30} strokeWidth={2.3} />
+        </button>
+
+        <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <header className="relative overflow-hidden border-b border-white/10 px-7 pb-6 pt-16">
+            <div className="pointer-events-none absolute -left-24 -top-24 size-72 rounded-full bg-mvnt-orange/20 blur-3xl" aria-hidden="true" />
+            <div className="pointer-events-none absolute right-0 top-14 size-56 rounded-full bg-violet-500/18 blur-3xl" aria-hidden="true" />
+            <div className="relative flex items-center gap-4">
+              <div className="music-source-art relative grid size-[124px] shrink-0 place-items-center overflow-hidden rounded-[24px] text-white shadow-[0_20px_52px_rgba(0,0,0,.46)] ring-1 ring-white/12" style={{ '--music-hue': (index * 42 + 128) % 360 }}>
+                <span className="absolute left-3 top-3 z-10 grid h-5 w-8 place-items-center rounded-[6px] bg-white text-[hsl(var(--music-hue)_80%_34%)] shadow-sm"><Play size={10} fill="currentColor" strokeWidth={3} /></span>
+                <Music2 className="relative z-20 drop-shadow-[0_5px_18px_rgba(0,0,0,.48)]" size={46} strokeWidth={2.4} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="truncate text-[34px] font-black leading-none tracking-[-0.05em] text-white">{music.title}</h3>
+                <div className="mt-4 flex items-center gap-2">
+                  <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow text-black ring-1 ring-white/20"><Music2 size={17} strokeWidth={3} /></span>
+                  <span className="truncate text-lg font-bold text-white/64">{music.artist}</span>
+                </div>
+                <p className="mt-3 text-base font-bold text-white/48">{music.usage}</p>
+              </div>
+            </div>
+            <button type="button" className="relative mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-5 text-lg font-black text-white shadow-[0_18px_46px_rgba(255,138,0,.24)] transition hover:brightness-110">
+              <Wand2 size={22} strokeWidth={2.5} />
+              이 노래로 춤 만들기
+            </button>
+          </header>
+
+          <section className="bg-white/[.025] px-2 pb-4 pt-2">
+            <h4 className="sr-only">사용한 영상들</h4>
+            <div className="grid grid-cols-2 gap-0.5">
+              {usedVideos.map((video, videoIndex) => (
+                <article key={`${video.src}-${videoIndex}`} className="group relative aspect-[9/14] overflow-hidden rounded-[18px] border border-white/8 bg-black shadow-[0_16px_42px_rgba(0,0,0,.32)]">
+                  <video className="size-full object-cover transition duration-300 group-hover:scale-[1.03]" src={video.src} muted loop playsInline preload="metadata" />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/72 to-transparent p-3 text-white">
+                    <strong className="block truncate text-lg font-black drop-shadow">조회수 {video.likes + 87 + videoIndex * 34}만회</strong>
+                  </div>
+                  <span className="absolute left-3 top-3 rounded-full border border-white/10 bg-black/46 px-2.5 py-1 text-sm font-black text-white backdrop-blur-sm">아티스트</span>
+                </article>
+              ))}
+            </div>
+          </section>
         </div>
-        <span className="absolute left-3 top-8 z-10 max-w-[58px] text-[15px] font-black leading-[1.02] tracking-[-0.05em] text-white">Audio Library</span>
-        <div className="music-speaker-beat absolute bottom-3 left-3 z-10 flex h-7 items-end gap-1" aria-hidden="true">
-          <span className="h-4 w-1.5 rounded-full bg-white" />
-          <span className="h-7 w-1.5 rounded-full bg-white" />
-          <span className="h-5 w-1.5 rounded-full bg-white" />
-          <span className="h-6 w-1.5 rounded-full bg-white" />
-        </div>
-        <span className="music-source-note relative z-20 grid size-7 place-items-center rounded-full bg-white/18 text-xl font-black text-white backdrop-blur-sm">♪</span>
       </div>
     </aside>
   );
@@ -1574,6 +1647,7 @@ function ExplorePage() {
   const [likedReels, setLikedReels] = useState({});
   const [scrollBounds, setScrollBounds] = useState({ canUp: false, canDown: true });
   const [activeCommentIndex, setActiveCommentIndex] = useState(null);
+  const [activeMusicIndex, setActiveMusicIndex] = useState(null);
   const [commentDrafts, setCommentDrafts] = useState({});
   const [reelComments, setReelComments] = useState({});
   const exploreCommentCardRef = useRef(null);
@@ -1604,6 +1678,7 @@ function ExplorePage() {
       if (Math.abs(feed.scrollTop - lastScrollTop) > 1) {
         lastScrollTop = feed.scrollTop;
         setActiveCommentIndex(null);
+        setActiveMusicIndex(null);
       }
       setScrollBounds({
         canUp: feed.scrollTop > 2,
@@ -1650,6 +1725,7 @@ function ExplorePage() {
   }
 
   function openExploreComments(index) {
+    setActiveMusicIndex(null);
     setActiveCommentIndex((value) => {
       if (value === index) return null;
       if (typeof window !== 'undefined') {
@@ -1699,6 +1775,11 @@ function ExplorePage() {
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   }
 
+  function openExploreMusic(index) {
+    setActiveCommentIndex(null);
+    setActiveMusicIndex((value) => (value === index ? null : index));
+  }
+
   return (
     <section ref={feedRef} className="reels-feed h-screen overflow-x-hidden overflow-y-auto overscroll-x-none overscroll-y-contain snap-y snap-mandatory scroll-smooth">
 
@@ -1715,8 +1796,14 @@ function ExplorePage() {
         )}
       </div>
       {reels.map((reel, index) => (
-        <article key={`${reel.src}-${index}`} className="relative ml-[max(16px,calc(50%-460px))] mr-auto flex min-h-screen w-[min(720px,100%)] snap-start items-stretch justify-center px-4 py-0">
-          <div className="relative isolate h-screen w-full max-w-[430px] overflow-hidden rounded-none border-x border-white/10 bg-neutral-950 shadow-[0_30px_90px_rgba(0,0,0,.55)]">
+        <article
+          key={`${reel.src}-${index}`}
+          className="relative ml-[max(16px,calc(50%-460px))] mr-auto flex min-h-screen w-[min(720px,100%)] snap-start items-stretch justify-center px-4 py-0"
+        >
+          <div
+            className="relative isolate h-screen w-full max-w-[430px] overflow-hidden rounded-none border-x border-white/10 bg-neutral-950 shadow-[0_30px_90px_rgba(0,0,0,.55)] transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)]"
+            style={{ transform: activeMusicIndex === index ? 'translateX(-260px)' : 'translateX(0)' }}
+          >
             <ReelVideo reel={reel} index={index} />
 
             <div className="absolute inset-x-0 bottom-0 z-10 p-4 pb-5">
@@ -1733,7 +1820,9 @@ function ExplorePage() {
             </div>
           </div>
 
-          <MusicIdentityOverlay reel={reel} index={index} />
+          {activeMusicIndex === index && (
+            <ExploreMusicPanel reel={reel} index={index} reels={reels} onClose={() => setActiveMusicIndex(null)} />
+          )}
 
           {activeCommentIndex === index && (
             <aside
@@ -1806,7 +1895,10 @@ function ExplorePage() {
             </aside>
           )}
 
-          <div className="absolute bottom-8 right-[max(18px,calc(50%-300px))] z-20 flex flex-col items-center gap-3">
+          <div
+            className="absolute bottom-8 right-[max(18px,calc(50%-300px))] z-20 flex flex-col items-center gap-3 transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)]"
+            style={{ transform: activeMusicIndex === index ? 'translateX(-260px)' : 'translateX(0)' }}
+          >
             <button
               type="button"
               onClick={() => setLikedReels((value) => ({ ...value, [index]: !value[index] }))}
@@ -1839,6 +1931,7 @@ function ExplorePage() {
               <ExternalLink size={21} />
             </a>
             <span className="-mt-2 text-[10px] font-black text-white/62">{3 + (index % 5)}</span>
+            <MusicIdentityOverlay reel={reel} index={index} isActive={activeMusicIndex === index} onOpen={() => openExploreMusic(index)} />
           </div>
         </article>
       ))}
@@ -1852,8 +1945,36 @@ function DancePage() {
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [createComposerOpen, setCreateComposerOpen] = useState(false);
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
+  const [bottomBarOpen, setBottomBarOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState(null);
   const [activeProject, setActiveProject] = useState(null);
+  const [danceToast, setDanceToast] = useState(null);
+  const [selectedTimelineItem, setSelectedTimelineItem] = useState('dance-main');
+  const [timelineTracks, setTimelineTracks] = useState([
+    {
+      id: 'background',
+      label: '배경',
+      icon: Image,
+      items: [
+        { id: 'background-studio', label: '화이트 스튜디오', start: 0, duration: 100, tone: 'background' }
+      ]
+    },
+    {
+      id: 'dance',
+      label: '춤',
+      icon: Footprints,
+      items: [
+        { id: 'dance-main', label: '메인 댄스 모션', start: 7, duration: 68, tone: 'dance' },
+        { id: 'dance-accent', label: '포인트 동작', start: 78, duration: 16, tone: 'accent' }
+      ]
+    }
+  ]);
+
+  useEffect(() => {
+    if (!danceToast) return undefined;
+    const toastTimeout = window.setTimeout(() => setDanceToast(null), 2400);
+    return () => window.clearTimeout(toastTimeout);
+  }, [danceToast]);
 
   const dismissChoiceOverlay = () => setChoiceOverlayVisible(false);
   const openTemplatePicker = () => setTemplatePickerOpen(true);
@@ -1861,33 +1982,139 @@ function DancePage() {
   const openProjectPicker = () => setProjectPickerOpen(true);
   const applyTemplate = (template) => {
     setActiveTemplate(template);
+    setActiveProject(null);
+    setDanceToast(`${template.title} 템플릿 적용함`);
     setTemplatePickerOpen(false);
     setChoiceOverlayVisible(false);
   };
   const loadProject = (project) => {
     setActiveProject(project);
+    setActiveTemplate(null);
+    setDanceToast(`${project.workTitle} 프로젝트 불러옴`);
     setProjectPickerOpen(false);
     setChoiceOverlayVisible(false);
   };
+  const deleteTimelineItem = (itemId) => {
+    setTimelineTracks((tracks) => tracks.map((track) => ({
+      ...track,
+      items: track.items.filter((item) => item.id !== itemId)
+    })));
+    setSelectedTimelineItem((current) => (current === itemId ? null : current));
+    setDanceToast('선택한 편집 요소 삭제함');
+  };
 
   return (
-    <section className="relative h-screen overflow-hidden bg-white text-[#202020]" aria-label="댄스">
-      <div className={choiceOverlayVisible || templatePickerOpen || createComposerOpen || projectPickerOpen ? 'dance-stage is-choosing' : 'dance-stage'}>
+    <section className={`dance-page relative h-screen overflow-hidden bg-white text-[#202020] ${bottomBarOpen ? 'is-editing-open' : ''}`} aria-label="댄스">
+      <div className={`${choiceOverlayVisible || templatePickerOpen || createComposerOpen || projectPickerOpen ? 'dance-stage is-choosing' : 'dance-stage'}`}>
         <Suspense fallback={<div className="three-dance-scene"><div className="three-dance-loading" role="status"><span className="three-dance-spinner" aria-hidden="true" /><span>Loading studio</span></div></div>}>
           <ThreeDanceScene />
         </Suspense>
       </div>
-      {(activeTemplate || activeProject) && !choiceOverlayVisible && !templatePickerOpen && !projectPickerOpen && !createComposerOpen && (
+      {danceToast && !choiceOverlayVisible && !templatePickerOpen && !projectPickerOpen && !createComposerOpen && (
         <div className="dance-active-template" aria-live="polite">
           <Check size={15} strokeWidth={3} />
-          <span>{activeProject ? `${activeProject.workTitle} 프로젝트 불러옴` : `${activeTemplate.title} 템플릿 적용됨`}</span>
+          <span>{danceToast}</span>
         </div>
       )}
+      <aside className={`dance-bottom-bar ${bottomBarOpen ? 'is-open' : ''}`} aria-label="댄스 편집 하단 바">
+        <button
+          type="button"
+          className="dance-bottom-bar-handle"
+          aria-expanded={bottomBarOpen}
+          aria-controls="dance-bottom-bar-panel"
+          onClick={() => setBottomBarOpen((open) => !open)}
+        >
+          <span className="dance-bottom-bar-grip" aria-hidden="true" />
+          {bottomBarOpen ? <ChevronDown size={18} strokeWidth={3} /> : <ChevronUp size={18} strokeWidth={3} />}
+          <span>{bottomBarOpen ? '편집 패널 내리기' : '편집 패널 올리기'}</span>
+        </button>
+        <div id="dance-bottom-bar-panel" className="dance-bottom-bar-panel">
+          <div className="dance-timeline-header">
+            <div className="dance-bottom-bar-status">
+              <span className="dance-bottom-bar-kicker">Dance Timeline</span>
+              <strong>{activeProject ? activeProject.workTitle : activeTemplate ? activeTemplate.title : '배경 + 춤 편집'}</strong>
+              <span>프리미어/캡컷처럼 배경과 춤 클립을 선택하고 삭제하면서 편집합니다.</span>
+            </div>
+            <div className="dance-bottom-bar-actions" aria-label="댄스 편집 도구">
+              <button type="button" onClick={openTemplatePicker}>
+                <Footprints size={17} strokeWidth={2.7} />
+                춤 추가
+              </button>
+              <button type="button" onClick={openProjectPicker}>
+                <Image size={17} strokeWidth={2.7} />
+                배경 추가
+              </button>
+              <button type="button" className="is-primary" onClick={openCreateComposer}>
+                <Sparkles size={17} strokeWidth={2.7} />
+                AI 수정
+              </button>
+            </div>
+          </div>
+          <div className="dance-timeline-shell" aria-label="배경과 춤 타임라인">
+            <div className="dance-timeline-ruler" aria-hidden="true">
+              {['0:00', '0:05', '0:10', '0:15', '0:20'].map((tick) => <span key={tick}>{tick}</span>)}
+            </div>
+            <div className="dance-timeline-playhead" aria-hidden="true" />
+            <div className="dance-timeline-tracks">
+              {timelineTracks.map((track) => {
+                const TrackIcon = track.icon;
+                return (
+                  <div key={track.id} className="dance-timeline-track">
+                    <div className="dance-timeline-track-label">
+                      <TrackIcon size={16} strokeWidth={2.7} />
+                      <span>{track.label}</span>
+                    </div>
+                    <div className="dance-timeline-lane">
+                      {track.items.map((item) => (
+                        <div
+                          key={item.id}
+                          role="button"
+                          tabIndex={0}
+                          className={`dance-timeline-clip is-${item.tone} ${selectedTimelineItem === item.id ? 'is-selected' : ''}`}
+                          style={{ left: `${item.start}%`, width: `${item.duration}%` }}
+                          aria-pressed={selectedTimelineItem === item.id}
+                          onClick={() => setSelectedTimelineItem(item.id)}
+                          onKeyDown={(event) => {
+                            if (event.key !== 'Enter' && event.key !== ' ') return;
+                            event.preventDefault();
+                            setSelectedTimelineItem(item.id);
+                          }}
+                        >
+                          <span>{item.label}</span>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            className="dance-timeline-delete"
+                            aria-label={`${item.label} 삭제`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              deleteTimelineItem(item.id);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key !== 'Enter' && event.key !== ' ') return;
+                              event.preventDefault();
+                              event.stopPropagation();
+                              deleteTimelineItem(item.id);
+                            }}
+                          >
+                            <X size={13} strokeWidth={3} />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </aside>
       {choiceOverlayVisible && <DanceChoiceOverlay onTemplate={openTemplatePicker} onCreate={openCreateComposer} onLoad={openProjectPicker} />}
       {createComposerOpen && (
         <DanceCreateComposerModal
           onClose={() => setCreateComposerOpen(false)}
           onGenerate={() => {
+            setDanceToast('새 댄스 생성함');
             setCreateComposerOpen(false);
             setChoiceOverlayVisible(false);
           }}
