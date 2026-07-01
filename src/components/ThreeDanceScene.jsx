@@ -8,6 +8,16 @@ import { danceMannequinModelUrl, danceRigBoneNames } from '../lib/danceRig.js';
 const defaultCameraPosition = new THREE.Vector3(0, 1.56, 6.8);
 const defaultCameraTarget = new THREE.Vector3(0, 1.38, 0);
 
+
+const danceBackgroundThemes = [
+  { label: '블랙', scene: 0x050505, fog: 0x050505, floor: 0x070707, swatch: '#050505' },
+  { label: '차콜', scene: 0x161616, fog: 0x161616, floor: 0x22201d, swatch: '#161616' },
+  { label: '화이트', scene: 0xffffff, fog: 0xffffff, floor: 0xf1f0ee, swatch: '#ffffff' },
+  { label: '크림', scene: 0xfff3df, fog: 0xfff3df, floor: 0xf4dfbf, swatch: '#fff3df' },
+  { label: '라일락', scene: 0xeee8ff, fog: 0xeee8ff, floor: 0xe3dbf6, swatch: '#eee8ff' },
+  { label: '민트', scene: 0xe5f7ef, fog: 0xe5f7ef, floor: 0xd8eee4, swatch: '#e5f7ef' }
+];
+
 function makeShadowTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
@@ -34,7 +44,7 @@ function fitModelToStudio(model) {
   const scale = targetHeight / Math.max(size.y, 0.001);
   model.scale.setScalar(scale);
   model.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
-  model.rotation.y = Math.PI;
+  model.rotation.y = 0;
   model.updateMatrixWorld(true);
 }
 
@@ -89,7 +99,7 @@ function animateDance(model, bones, elapsed) {
   const quick = Math.sin(beat * 2.0);
 
   model.position.y = Math.max(0, 0.035 * Math.sin(beat * 2.0));
-  model.rotation.y = Math.PI + groove * 0.08;
+  model.rotation.y = groove * 0.08;
   model.rotation.z = groove * 0.025;
 
   setBone(bones, 'Hips', { z: groove * 0.1, y: groove2 * 0.05, py: Math.max(0, quick) * 0.012 });
@@ -154,12 +164,15 @@ export function ThreeDanceScene() {
   const trackingRef = useRef(true);
   const resetSceneCameraRef = useRef(() => {});
   const captureSceneImageRef = useRef(() => null);
+  const applyBackgroundThemeRef = useRef(() => {});
   const skeletonRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [tracking, setTracking] = useState(true);
   const [skeleton, setSkeleton] = useState(false);
+  const [backgroundThemeIndex, setBackgroundThemeIndex] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
+  const backgroundTheme = danceBackgroundThemes[backgroundThemeIndex];
 
   useEffect(() => {
     trackingRef.current = tracking;
@@ -168,6 +181,10 @@ export function ThreeDanceScene() {
   useEffect(() => {
     skeletonRef.current = skeleton;
   }, [skeleton]);
+
+  useEffect(() => {
+    applyBackgroundThemeRef.current(backgroundTheme);
+  }, [backgroundTheme]);
 
   useEffect(() => {
     if (!statusMessage) return undefined;
@@ -185,18 +202,17 @@ export function ThreeDanceScene() {
     let skeletonHelper = null;
     let bones = new Map();
     const clock = new THREE.Clock();
-    const desiredCameraTarget = new THREE.Vector3();
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xffffff);
-    scene.fog = new THREE.FogExp2(0xffffff, 0.018);
+    scene.background = new THREE.Color(backgroundTheme.scene);
+    scene.fog = new THREE.FogExp2(backgroundTheme.fog, 0.018);
 
     const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
     camera.position.copy(defaultCameraPosition);
     camera.lookAt(defaultCameraTarget);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true });
-    renderer.setClearColor(0xffffff, 1);
+    renderer.setClearColor(backgroundTheme.scene, 1);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -282,7 +298,7 @@ export function ThreeDanceScene() {
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(2200, 2200),
       new THREE.MeshStandardMaterial({
-        color: 0xf1f0ee,
+        color: backgroundTheme.floor,
         roughness: 0.92,
         metalness: 0,
         envMapIntensity: 0.18
@@ -292,6 +308,14 @@ export function ThreeDanceScene() {
     floor.position.y = -0.018;
     floor.receiveShadow = false;
     scene.add(floor);
+
+    applyBackgroundThemeRef.current = (theme) => {
+      scene.background = new THREE.Color(theme.scene);
+      scene.fog.color.setHex(theme.fog);
+      renderer.setClearColor(theme.scene, 1);
+      floor.material.color.setHex(theme.floor);
+    };
+    applyBackgroundThemeRef.current(backgroundTheme);
 
     const shadowCatcher = new THREE.Mesh(
       new THREE.PlaneGeometry(48, 48),
@@ -374,12 +398,11 @@ export function ThreeDanceScene() {
       if (model) animateDance(model, bones, elapsed);
       if (skeletonHelper) skeletonHelper.visible = skeletonRef.current;
 
-      const followX = trackingRef.current && model ? model.rotation.z * 1.25 : controls.target.x;
-      const followY = trackingRef.current && model ? 1.38 + model.position.y * 0.45 : controls.target.y;
-      const followZ = trackingRef.current ? 0 : controls.target.z;
-      desiredCameraTarget.set(followX, followY, 0);
-      desiredCameraTarget.z = followZ;
-      if (trackingRef.current) controls.target.lerp(desiredCameraTarget, 0.045);
+      controls.enabled = !trackingRef.current;
+      if (trackingRef.current) {
+        camera.position.lerp(defaultCameraPosition, 0.16);
+        controls.target.lerp(defaultCameraTarget, 0.16);
+      }
       controls.update();
       floor.position.x = controls.target.x;
       floor.position.z = controls.target.z;
@@ -401,6 +424,7 @@ export function ThreeDanceScene() {
       resizeObserver.disconnect();
       resetSceneCameraRef.current = () => {};
       captureSceneImageRef.current = () => null;
+      applyBackgroundThemeRef.current = () => {};
       controls.removeEventListener('start', handleControlsStart);
       controls.dispose();
       scene.traverse((object) => {
@@ -419,6 +443,19 @@ export function ThreeDanceScene() {
       renderer.domElement.remove();
     };
   }, []);
+
+  const toggleTracking = () => {
+    setTracking((current) => {
+      if (!current) resetSceneCameraRef.current();
+      return !current;
+    });
+  };
+
+  const changeBackgroundTheme = () => {
+    const nextBackgroundThemeIndex = (backgroundThemeIndex + 1) % danceBackgroundThemes.length;
+    setBackgroundThemeIndex(nextBackgroundThemeIndex);
+    setStatusMessage(`배경색을 ${danceBackgroundThemes[nextBackgroundThemeIndex].label}로 바꿨어요`);
+  };
 
   const saveSceneImage = () => {
     const imageData = captureSceneImageRef.current();
@@ -451,30 +488,45 @@ export function ThreeDanceScene() {
       )}
       {failed && <div className="three-dance-loading" role="alert">3D studio failed to load</div>}
       <div className="three-dance-camera-panel" role="group" aria-label="춤 보기 도구">
-        <button
-          type="button"
-          className={`three-dance-tool-button ${tracking ? 'is-active' : ''}`}
-          aria-label="트래킹 켜기 끄기"
-          aria-pressed={tracking}
-          onClick={() => setTracking((current) => !current)}
-        >
-          트래킹 {tracking ? 'ON' : 'OFF'}
-        </button>
-        <button
-          type="button"
-          className={`three-dance-tool-button ${skeleton ? 'is-active' : ''}`}
-          aria-label="스켈레톤 켜기 끄기"
-          aria-pressed={skeleton}
-          onClick={() => setSkeleton((current) => !current)}
-        >
-          스켈레톤 {skeleton ? 'ON' : 'OFF'}
-        </button>
-        <button type="button" className="three-dance-tool-button" onClick={saveSceneImage} aria-label="현재 춤 장면 저장">
-          저장
-        </button>
-        <button type="button" className="three-dance-tool-button" onClick={downloadSceneImage} aria-label="현재 춤 장면 다운로드">
-          다운로드
-        </button>
+        <div className="three-dance-tool-section" aria-label="보기 옵션">
+          <button
+            type="button"
+            className={`three-dance-tool-button ${tracking ? 'is-active' : ''}`}
+            aria-label="트래킹 켜기 끄기"
+            aria-pressed={tracking}
+            onClick={toggleTracking}
+          >
+            <span>트래킹</span>
+            <span className="three-dance-tool-state">{tracking ? 'ON' : 'OFF'}</span>
+          </button>
+          <button
+            type="button"
+            className={`three-dance-tool-button ${skeleton ? 'is-active' : ''}`}
+            aria-label="스켈레톤 켜기 끄기"
+            aria-pressed={skeleton}
+            onClick={() => setSkeleton((current) => !current)}
+          >
+            <span>스켈레톤</span>
+            <span className="three-dance-tool-state">{skeleton ? 'ON' : 'OFF'}</span>
+          </button>
+          <button
+            type="button"
+            className="three-dance-tool-button"
+            onClick={changeBackgroundTheme}
+            aria-label={`배경색 변경, 현재 ${backgroundTheme.label}`}
+          >
+            <span>배경</span>
+            <span className="three-dance-color-swatch" style={{ backgroundColor: backgroundTheme.swatch }} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="three-dance-tool-section" aria-label="내보내기 옵션">
+          <button type="button" className="three-dance-tool-button" onClick={saveSceneImage} aria-label="현재 춤 장면 저장">
+            <span>저장</span>
+          </button>
+          <button type="button" className="three-dance-tool-button is-primary" onClick={downloadSceneImage} aria-label="현재 춤 장면 다운로드">
+            <span>다운로드</span>
+          </button>
+        </div>
       </div>
       {statusMessage && <div className="three-dance-status" role="status">{statusMessage}</div>}
     </div>

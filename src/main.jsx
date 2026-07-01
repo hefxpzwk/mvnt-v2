@@ -477,7 +477,8 @@ function DropOverlay() {
 
 function HomePage({ musicSource, onMusicSourceChange, sidebarExpanded }) {
   const [mode, setMode] = useState('YouTube');
-  const [status, setStatus] = useState('Generate');
+  const [composerStep, setComposerStep] = useState('music');
+  const [status, setStatus] = useState('Next');
   const [headlineProgress, setHeadlineProgress] = useState(100);
   const [headlineHovering, setHeadlineHovering] = useState(false);
   const headlineReturnFrameRef = useRef(null);
@@ -517,15 +518,24 @@ function HomePage({ musicSource, onMusicSourceChange, sidebarExpanded }) {
     clearStatusTimers();
   }, []);
 
-  function generate(event) {
+  function handleComposerPrimaryAction(event) {
     event?.preventDefault?.();
     event?.stopPropagation?.();
     clearStatusTimers();
-    setStatus('Thinking');
-    statusTimersRef.current = [
-      window.setTimeout(() => setStatus('Composing'), 500),
-      window.setTimeout(() => setStatus('Ready'), 1200)
-    ];
+    if (composerStep === 'music') {
+      setStatus('Generate');
+      setComposerStep('details');
+      return;
+    }
+    setStatus('Generate');
+  }
+
+  function returnToComposerMusic(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    clearStatusTimers();
+    setStatus('Next');
+    setComposerStep('music');
   }
 
   function updateHeadlineGradient(event) {
@@ -557,8 +567,8 @@ function HomePage({ musicSource, onMusicSourceChange, sidebarExpanded }) {
   }
 
   return (
-    <section className="min-h-screen px-4 py-10">
-      <div className="flex min-h-[calc(100vh-80px)] -translate-y-8 items-center justify-center">
+    <section className="min-h-screen px-4 pb-10 pt-10">
+      <div className="flex min-h-[clamp(520px,68vh,720px)] items-center justify-center pb-8">
         <div className="w-full max-w-[980px]">
           <div className="mb-8 text-center">
           <h1
@@ -580,7 +590,7 @@ function HomePage({ musicSource, onMusicSourceChange, sidebarExpanded }) {
           <p className="mx-auto mt-4 max-w-2xl text-base font-semibold leading-relaxed text-mvnt-muted sm:text-lg">음악 파일을 드롭하거나 링크를 붙여넣으면, 바로 움직임 초안으로 변환할 준비를 시작합니다.</p>
         </div>
 
-          <section className="stable-composer overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950">
+          <section className="stable-composer home-composer overflow-hidden rounded-[18px] border border-white/10 bg-neutral-950">
             <div className="flex gap-1 overflow-hidden border-b border-white/10 bg-[#111]/92 px-3 pt-2">
               {modes.map(({ name, icon: Icon }) => {
                 const selected = mode === name;
@@ -641,15 +651,31 @@ function HomePage({ musicSource, onMusicSourceChange, sidebarExpanded }) {
                 )}
               </div>
 
-              <button type="button" onClick={generate} className="justify-self-end inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-3 text-[11px] font-black text-white shadow-[0_12px_32px_rgba(255,138,0,.18)]">
-                <span>{status}</span>
-                <span className="h-3.5 w-px bg-white/26" aria-hidden="true" />
-                <span className="inline-flex items-center gap-1.5 text-white/86" title="Estimated tokens used">
-                  <Zap size={13} className="fill-white stroke-white" strokeWidth={0} />
-                  <span>{tokenUse}</span>
-                </span>
-              </button>
+              <div className="justify-self-end inline-flex shrink-0 items-center gap-2">
+                {composerStep === 'details' && (
+                  <button type="button" onClick={returnToComposerMusic} className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/12 bg-white/[.055] px-3 text-[11px] font-black text-mvnt-muted transition hover:bg-white/[.09] hover:text-mvnt-text">
+                    Previous
+                  </button>
+                )}
+                <button type="button" onClick={handleComposerPrimaryAction} className="inline-flex min-h-9 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-mvnt-orange via-pink-500 to-violet-600 px-3 text-[11px] font-black text-white shadow-[0_12px_32px_rgba(255,138,0,.18)]">
+                  <span>{status}</span>
+                  <span className="h-3.5 w-px bg-white/26" aria-hidden="true" />
+                  <span className="inline-flex items-center gap-1.5 text-white/86" title="Estimated tokens used">
+                    <Zap size={13} className="fill-white stroke-white" strokeWidth={0} />
+                    <span>{tokenUse}</span>
+                  </span>
+                </button>
+              </div>
             </div>
+            {composerStep === 'details' ? (
+              <CreationDetailsStep />
+            ) : sourceDescription ? (
+              <MusicSourceEmbedPreview
+                description={sourceDescription}
+                metadata={sourceMetadata}
+                placeholder="붙여넣은 링크를 임베드했습니다"
+              />
+            ) : null}
           </section>
         </div>
       </div>
@@ -1758,7 +1784,7 @@ function ExplorePage({ sidebarExpanded }) {
       offsetX: event.clientX - rect.left,
       offsetY: event.clientY - rect.top
     };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
+    captureElement.setPointerCapture?.(event.pointerId);
   }
 
   function moveExploreCommentDrag(event) {
@@ -1974,12 +2000,17 @@ function DancePage() {
   const [timelinePlaying, setTimelinePlaying] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [draggingTimelineItem, setDraggingTimelineItem] = useState(null);
+  const draggingTimelineItemRef = useRef(null);
   const [timelineContextMenu, setTimelineContextMenu] = useState(null);
   const [draggingPlayhead, setDraggingPlayhead] = useState(false);
   const [danceEditorMode, setDanceEditorMode] = useState('timeline');
-  const [dancePrompt, setDancePrompt] = useState('강한 그루브에 맞춘 K-pop 스타일 포인트 안무');
-  const [selectedDanceGenre, setSelectedDanceGenre] = useState('K-pop');
-  const danceGenreOptions = ['K-pop', 'Hip-hop', 'House', 'Waacking', 'Locking', 'Popping', 'Afro', 'Street Jazz'];
+  const [generalSong, setGeneralSong] = useState('https://www.youtube.com/watch?v=JAldG0a6Lvo');
+  const [generalPrompt, setGeneralPrompt] = useState('강한 그루브에 맞춘 K-pop 스타일 포인트 안무');
+  const [generalSongMetadata, setGeneralSongMetadata] = useState(null);
+  const [characterName, setCharacterName] = useState('메인 캐릭터');
+  const [characterPrompt, setCharacterPrompt] = useState('무대에서 춤추는 스트릿 댄서 캐릭터');
+  const [characterImagePreview, setCharacterImagePreview] = useState(null);
+  const characterFileInputRef = useRef(null);
   const timelineDuration = 300;
   const timelineTicks = [0, 60, 120, 180, 240, 300];
   const formatTimelineTime = (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
@@ -1991,6 +2022,14 @@ function DancePage() {
       icon: Image,
       items: [
         { id: 'background-studio', label: '화이트 스튜디오', start: 0, duration: 300, tone: 'background' }
+      ]
+    },
+    {
+      id: 'character',
+      label: '캐릭터',
+      icon: UserRound,
+      items: [
+        { id: 'character-main', label: '메인 캐릭터', start: 0, duration: 300, tone: 'character' }
       ]
     },
     {
@@ -2010,6 +2049,22 @@ function DancePage() {
     return () => window.clearTimeout(toastTimeout);
   }, [danceToast]);
 
+  const generalSongDescription = generalSong.trim() ? describeSource({ type: 'link', label: generalSong.trim() }) : null;
+
+  useEffect(() => {
+    let cancelled = false;
+    setGeneralSongMetadata(null);
+    if (!generalSongDescription) return undefined;
+
+    fetchSourceMetadata(generalSongDescription).then((metadata) => {
+      if (!cancelled) setGeneralSongMetadata(metadata);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [generalSongDescription?.kind, generalSongDescription?.url, generalSongDescription?.title]);
+
   useEffect(() => {
     if (!timelinePlaying) return undefined;
     const playbackTimer = window.setInterval(() => {
@@ -2025,6 +2080,37 @@ function DancePage() {
     }, 240);
     return () => window.clearInterval(playbackTimer);
   }, [timelinePlaying]);
+
+  useEffect(() => {
+    draggingTimelineItemRef.current = draggingTimelineItem;
+  }, [draggingTimelineItem]);
+
+  useEffect(() => () => {
+    if (characterImagePreview?.startsWith('blob:')) URL.revokeObjectURL(characterImagePreview);
+  }, [characterImagePreview]);
+
+  useEffect(() => {
+    const handleWindowPointerMove = (event) => {
+      const dragState = draggingTimelineItemRef.current;
+      if (!dragState || dragState.pointerId !== event.pointerId) return;
+      const deltaSeconds = (event.clientX - dragState.startX) * dragState.secondsPerPixel;
+      moveTimelineItem(dragState.id, dragState.initialStart + deltaSeconds);
+    };
+    const handleWindowPointerUp = (event) => {
+      const dragState = draggingTimelineItemRef.current;
+      if (!dragState || dragState.pointerId !== event.pointerId) return;
+      draggingTimelineItemRef.current = null;
+      setDraggingTimelineItem(null);
+    };
+    window.addEventListener('pointermove', handleWindowPointerMove);
+    window.addEventListener('pointerup', handleWindowPointerUp);
+    window.addEventListener('pointercancel', handleWindowPointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handleWindowPointerMove);
+      window.removeEventListener('pointerup', handleWindowPointerUp);
+      window.removeEventListener('pointercancel', handleWindowPointerUp);
+    };
+  }, []);
 
   const dismissChoiceOverlay = () => setChoiceOverlayVisible(false);
   const openTemplatePicker = () => setTemplatePickerOpen(true);
@@ -2044,14 +2130,46 @@ function DancePage() {
     setProjectPickerOpen(false);
     setChoiceOverlayVisible(false);
   };
-  const applyDanceDirection = () => {
-    setDanceToast(`${selectedDanceGenre} 방향으로 춤 설정함`);
+  const loadCharacterImageFile = (file) => {
+    if (!file || !file.type?.startsWith('image/')) return false;
+    const previewUrl = URL.createObjectURL(file);
+    setCharacterImagePreview((currentPreview) => {
+      if (currentPreview?.startsWith('blob:')) URL.revokeObjectURL(currentPreview);
+      return previewUrl;
+    });
+    setDanceToast('캐릭터 이미지 불러옴');
+    return true;
+  };
+  const handleCharacterUpload = (event) => {
+    loadCharacterImageFile(event.target.files?.[0]);
+    event.target.value = '';
+  };
+  const handleCharacterDrop = (event) => {
+    event.preventDefault();
+    const imageFile = Array.from(event.dataTransfer.files ?? []).find((file) => file.type.startsWith('image/'));
+    loadCharacterImageFile(imageFile);
+  };
+  const handleCharacterPaste = (event) => {
+    const imageFile = Array.from(event.clipboardData.files ?? []).find((file) => file.type.startsWith('image/'));
+    if (!imageFile) return;
+    event.preventDefault();
+    loadCharacterImageFile(imageFile);
+  };
+  const applyCharacterEdit = () => {
+    setTimelineTracks((tracks) => tracks.map((track) => {
+      if (track.id !== 'character') return track;
+      return {
+        ...track,
+        items: track.items.map((item) => (item.id === 'character-main' ? { ...item, label: characterName || '메인 캐릭터' } : item))
+      };
+    }));
+    setDanceToast(`${characterName || '캐릭터'} 수정함`);
     setDanceEditorMode('timeline');
   };
   const calculatePlayheadFromClientX = (timelineShell, clientX) => {
     const timelineContent = timelineShell.querySelector('.dance-timeline-content') ?? timelineShell;
     const timelineRect = timelineContent.getBoundingClientRect();
-    const labelWidth = window.matchMedia('(max-width: 700px)').matches ? 64 : 84;
+    const labelWidth = window.matchMedia('(max-width: 700px)').matches ? 82 : 104;
     const editableWidth = Math.max(timelineRect.width - labelWidth, 1);
     const nextPlayhead = ((clientX - timelineRect.left - labelWidth) / editableWidth) * 100;
     return Math.max(0, Math.min(100, nextPlayhead));
@@ -2063,6 +2181,7 @@ function DancePage() {
     setTimelinePlayhead(calculatePlayheadFromClientX(event.currentTarget, event.clientX));
   };
   const startPlayheadDrag = (event) => {
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -2082,6 +2201,22 @@ function DancePage() {
     setTimelinePlayhead(Number(event.target.value));
   };
 
+  const findTimelineItem = (itemId) => timelineTracks.flatMap((track) => track.items).find((item) => item.id === itemId);
+  const handleTimelineClipPointerDown = (event) => {
+    const clipElement = event.target.closest('.dance-timeline-clip');
+    if (!clipElement || !event.currentTarget.contains(clipElement)) return;
+    const item = findTimelineItem(clipElement.dataset.timelineItemId);
+    if (!item) return;
+    startTimelineItemDrag(event, item, clipElement);
+  };
+  const handleTimelineClipContextMenu = (event) => {
+    const clipElement = event.target.closest('.dance-timeline-clip');
+    if (!clipElement || !event.currentTarget.contains(clipElement)) return;
+    const item = findTimelineItem(clipElement.dataset.timelineItemId);
+    if (!item) return;
+    openTimelineContextMenu(event, item);
+  };
+
   const moveTimelineItem = (itemId, nextStart) => {
     setTimelineTracks((tracks) => tracks.map((track) => ({
       ...track,
@@ -2092,30 +2227,36 @@ function DancePage() {
       })
     })));
   };
-  const startTimelineItemDrag = (event, item) => {
-    if (event.target.closest('.dance-timeline-delete')) return;
+  const startTimelineItemDrag = (event, item, captureElement = event.currentTarget) => {
+    if (event.button !== 0 || event.target.closest('.dance-timeline-delete')) return;
     event.preventDefault();
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    const timelineContent = event.currentTarget.closest('.dance-timeline-content');
+    captureElement.setPointerCapture?.(event.pointerId);
+    const timelineContent = captureElement.closest('.dance-timeline-content');
+    if (!timelineContent) return;
     const timelineRect = timelineContent.getBoundingClientRect();
-    const labelWidth = window.matchMedia('(max-width: 700px)').matches ? 64 : 84;
+    const labelWidth = window.matchMedia('(max-width: 700px)').matches ? 82 : 104;
     const secondsPerPixel = timelineDuration / Math.max(timelineRect.width - labelWidth, 1);
     setSelectedTimelineItem(item.id);
-    setDraggingTimelineItem({
+    const dragState = {
       id: item.id,
       pointerId: event.pointerId,
       startX: event.clientX,
       initialStart: item.start,
       secondsPerPixel
-    });
+    };
+    draggingTimelineItemRef.current = dragState;
+    setDraggingTimelineItem(dragState);
   };
   const dragTimelineItem = (event) => {
-    if (!draggingTimelineItem || draggingTimelineItem.pointerId !== event.pointerId) return;
-    const deltaSeconds = (event.clientX - draggingTimelineItem.startX) * draggingTimelineItem.secondsPerPixel;
-    moveTimelineItem(draggingTimelineItem.id, draggingTimelineItem.initialStart + deltaSeconds);
+    const dragState = draggingTimelineItemRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    const deltaSeconds = (event.clientX - dragState.startX) * dragState.secondsPerPixel;
+    moveTimelineItem(dragState.id, dragState.initialStart + deltaSeconds);
   };
   const stopTimelineItemDrag = (event) => {
-    if (!draggingTimelineItem || draggingTimelineItem.pointerId !== event.pointerId) return;
+    const dragState = draggingTimelineItemRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+    draggingTimelineItemRef.current = null;
     setDraggingTimelineItem(null);
   };
 
@@ -2125,6 +2266,11 @@ function DancePage() {
     setSelectedTimelineItem(item.id);
     setTimelineContextMenu({ id: item.id, label: item.label, x: event.clientX, y: event.clientY });
   };
+  const generateGeneralDance = () => {
+    const songLabel = generalSong.trim() || '선택한 노래';
+    setDanceToast(`${songLabel} 기반으로 춤 생성 시작`);
+  };
+
   const runTimelineContextAction = (action) => {
     if (!timelineContextMenu) return;
     const selectedLabel = timelineContextMenu.label;
@@ -2196,19 +2342,27 @@ function DancePage() {
           <div className="dance-editor-modebar">
             <div className="dance-editor-tabs" role="tablist" aria-label="댄스 편집 모드">
               <button type="button" role="tab" aria-selected={danceEditorMode === 'timeline'} className={danceEditorMode === 'timeline' ? 'is-active' : ''} onClick={() => setDanceEditorMode('timeline')}>타임라인 편집</button>
-              <button type="button" role="tab" aria-selected={danceEditorMode === 'prompt'} className={danceEditorMode === 'prompt' ? 'is-active' : ''} onClick={() => setDanceEditorMode('prompt')}>프롬프트 · 장르</button>
+              <button type="button" role="tab" aria-selected={danceEditorMode === 'character'} className={danceEditorMode === 'character' ? 'is-active' : ''} onClick={() => setDanceEditorMode('character')}>캐릭터 편집</button>
+              <button type="button" role="tab" aria-selected={danceEditorMode === 'general'} className={danceEditorMode === 'general' ? 'is-active' : ''} onClick={() => setDanceEditorMode('general')}>일반</button>
             </div>
-            <label className="dance-timeline-zoom">
-              <span>축소</span>
-              <input type="range" min="0.55" max="4" step="0.05" value={timelineZoom} onChange={(event) => setTimelineZoom(Number(event.target.value))} aria-label="타임라인 확대 축소" />
-              <span>확대</span>
-            </label>
+            {danceEditorMode === 'timeline' && (
+              <label className="dance-timeline-zoom">
+                <span>축소</span>
+                <input type="range" min="0.55" max="4" step="0.05" value={timelineZoom} onChange={(event) => setTimelineZoom(Number(event.target.value))} aria-label="타임라인 확대 축소" />
+                <span>확대</span>
+              </label>
+            )}
           </div>
           {danceEditorMode === 'timeline' ? (
             <div
               className="dance-timeline-shell"
               aria-label="배경과 춤 타임라인"
               onClick={moveTimelinePlayhead}
+              onContextMenu={handleTimelineClipContextMenu}
+              onPointerDown={handleTimelineClipPointerDown}
+              onPointerMove={dragTimelineItem}
+              onPointerUp={stopTimelineItemDrag}
+              onPointerCancel={stopTimelineItemDrag}
             >
               <div
                 className="dance-timeline-content"
@@ -2249,11 +2403,12 @@ function DancePage() {
                               key={item.id}
                               role="button"
                               tabIndex={0}
-                              className={`dance-timeline-clip is-${item.tone} ${selectedTimelineItem === item.id ? 'is-selected' : ''}`}
+                              className={`dance-timeline-clip is-${item.tone} ${selectedTimelineItem === item.id ? 'is-selected' : ''} ${draggingTimelineItem?.id === item.id ? 'is-dragging' : ''}`}
+                              data-timeline-item-id={item.id}
                               style={{ left: `${(item.start / timelineDuration) * 100}%`, width: `${(item.duration / timelineDuration) * 100}%` }}
-                            aria-pressed={selectedTimelineItem === item.id}
-                            onClick={() => setSelectedTimelineItem(item.id)}
-                            onKeyDown={(event) => {
+                              aria-pressed={selectedTimelineItem === item.id}
+                              onClick={() => setSelectedTimelineItem(item.id)}
+                              onKeyDown={(event) => {
                               if (event.key !== 'Enter' && event.key !== ' ') return;
                               event.preventDefault();
                               setSelectedTimelineItem(item.id);
@@ -2287,39 +2442,75 @@ function DancePage() {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="dance-prompt-editor" aria-label="프롬프트와 장르로 춤 정하기">
-              <section className="dance-prompt-card">
-                <label htmlFor="dance-prompt-input">춤 프롬프트</label>
-                <textarea id="dance-prompt-input" value={dancePrompt} onChange={(event) => setDancePrompt(event.target.value)} placeholder="예: 강한 베이스에 맞춘 힙합 기반의 짧고 임팩트 있는 안무" />
-                <button type="button" onClick={applyDanceDirection}>프롬프트 적용</button>
-              </section>
-              <section className="dance-genre-card">
-                <div className="dance-genre-title">비슷한 장르 선택</div>
-                <div className="dance-genre-grid">
-                  {danceGenreOptions.map((genre) => (
-                    <button key={genre} type="button" className={selectedDanceGenre === genre ? 'is-active' : ''} onClick={() => setSelectedDanceGenre(genre)}>{genre}</button>
-                  ))}
+          ) : danceEditorMode === 'character' ? (
+            <div className="dance-character-editor" aria-label="캐릭터 수정">
+              <section className="dance-character-controls">
+                <div className="dance-character-secondary-controls">
+                  <div
+                    className="dance-character-source-drop"
+                    role="button"
+                    tabIndex={0}
+                    onDrop={handleCharacterDrop}
+                    onDragOver={(event) => event.preventDefault()}
+                    onPaste={handleCharacterPaste}
+                    onClick={() => characterFileInputRef.current?.click()}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return;
+                      event.preventDefault();
+                      characterFileInputRef.current?.click();
+                    }}
+                  >
+                    <input ref={characterFileInputRef} type="file" accept="image/*" onChange={handleCharacterUpload} />
+                    <UploadCloud size={22} strokeWidth={2.4} />
+                    <strong>사진 붙여넣기 · 드래그 · 업로드</strong>
+                    <span>이미지를 붙여넣거나 끌어오거나 클릭해서 업로드하세요.</span>
+                  </div>
+                  <label className="dance-character-prompt-box">
+                    <span>프롬프트로 만들기</span>
+                    <textarea value={characterPrompt} onChange={(event) => setCharacterPrompt(event.target.value)} placeholder="예: 실버 재킷을 입은 K-pop 댄서 캐릭터" />
+                  </label>
+                  <button type="button" className="dance-character-apply" onClick={applyCharacterEdit}>캐릭터 수정 적용</button>
                 </div>
+              </section>
+            </div>
+          ) : (
+            <div className="dance-general-editor" aria-label="일반 설정">
+              <section className="dance-general-controls">
+                <label className="dance-general-field dance-general-song-field">
+                  <span>노래</span>
+                  <div className="dance-general-input-row">
+                    <Music2 size={18} strokeWidth={2.5} />
+                    <input value={generalSong} onChange={(event) => setGeneralSong(event.target.value)} placeholder="노래 링크, 제목, 파일명을 입력하세요" />
+                  </div>
+                  <div className="dance-general-music-preview">
+                    <MusicSourceEmbedPreview description={generalSongDescription} metadata={generalSongMetadata} placeholder="기본 노래를 입력하세요" />
+                  </div>
+                </label>
+                <label className="dance-general-field is-prompt">
+                  <span>기본 프롬프트</span>
+                  <textarea value={generalPrompt} onChange={(event) => setGeneralPrompt(event.target.value)} placeholder="예: 후렴에 맞춘 포인트 안무, 부드러운 웨이브, 강한 마무리" />
+                </label>
+                <button type="button" className="dance-general-generate" onClick={generateGeneralDance}>춤 생성</button>
               </section>
             </div>
           )}
         </div>
-        {timelineContextMenu && (
-          <div
-            className="dance-timeline-context-menu"
-            style={{ left: timelineContextMenu.x, top: timelineContextMenu.y }}
-            role="menu"
-            aria-label={`${timelineContextMenu.label} 편집 메뉴`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button type="button" role="menuitem" onClick={() => runTimelineContextAction('cut')}>Cut</button>
-            <button type="button" role="menuitem" onClick={() => runTimelineContextAction('delete')}>Delete</button>
-            <button type="button" role="menuitem" onClick={() => runTimelineContextAction('copy')}>Copy</button>
-            <button type="button" role="menuitem" onClick={() => runTimelineContextAction('edit')}>Edit</button>
-          </div>
-        )}
       </aside>
+      {timelineContextMenu && createPortal(
+        <div
+          className="dance-timeline-context-menu"
+          style={{ left: timelineContextMenu.x, top: timelineContextMenu.y }}
+          role="menu"
+          aria-label={`${timelineContextMenu.label} 편집 메뉴`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button type="button" role="menuitem" onClick={() => runTimelineContextAction('cut')}>Cut</button>
+          <button type="button" role="menuitem" onClick={() => runTimelineContextAction('delete')}>Delete</button>
+          <button type="button" role="menuitem" onClick={() => runTimelineContextAction('copy')}>Copy</button>
+          <button type="button" role="menuitem" onClick={() => runTimelineContextAction('edit')}>Edit</button>
+        </div>,
+        document.body
+      )}
       {choiceOverlayVisible && <DanceChoiceOverlay onTemplate={openTemplatePicker} onCreate={openCreateComposer} onLoad={openProjectPicker} />}
       {createComposerOpen && (
         <DanceCreateComposerModal
@@ -2360,7 +2551,7 @@ function DanceChoiceOverlay({ onTemplate, onCreate, onLoad }) {
       <div className="dance-choice-backdrop" aria-hidden="true" />
       <div className="dance-choice-content">
         <div className="dance-choice-copy">
-          <h1>댄스를 어떻게 시작할까요?</h1>
+          <h1><span className="dance-choice-gradient-word">댄스</span>를 어떻게 시작할까요?</h1>
           <p>템플릿으로 빠르게 시작하거나, 새 안무를 만들고, 저장된 작업을 불러올 수 있어요.</p>
         </div>
         <div className="dance-choice-actions">
@@ -2513,7 +2704,8 @@ function DanceProjectPicker({ onClose, onLoad }) {
 
 function DanceCreateComposerModal({ onClose, onGenerate }) {
   const [mode, setMode] = useState('YouTube');
-  const [status, setStatus] = useState('Generate');
+  const [composerStep, setComposerStep] = useState('music');
+  const [status, setStatus] = useState('Next');
   const [musicSource, setMusicSource] = useState(null);
   const [sourceMetadata, setSourceMetadata] = useState(null);
   const fileInputRef = useRef(null);
@@ -2545,17 +2737,30 @@ function DanceCreateComposerModal({ onClose, onGenerate }) {
     statusTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
   }, []);
 
-  function generate(event) {
+  function handleComposerPrimaryAction(event) {
     event?.preventDefault?.();
     statusTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
-    setStatus('Thinking');
-    statusTimersRef.current = [
-      window.setTimeout(() => setStatus('Composing'), 420),
-      window.setTimeout(() => {
-        setStatus('Ready');
-        onGenerate?.(musicSource);
-      }, 980)
-    ];
+    if (composerStep === 'music') {
+      setStatus('Generate');
+      setComposerStep('details');
+      return;
+    }
+    setStatus('Generate');
+    onGenerate?.(musicSource);
+  }
+
+  function returnToComposerMusic(event) {
+    event?.preventDefault?.();
+    statusTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    setStatus('Next');
+    setComposerStep('music');
+  }
+
+  function applyFile(file) {
+    if (!file) return false;
+    setMusicSource({ type: 'file', label: file.name, file });
+    setMode(inferModeFromSource({ type: 'file', label: file.name, file }, mode));
+    return true;
   }
 
   function applyPastedText(text) {
@@ -2568,6 +2773,14 @@ function DanceCreateComposerModal({ onClose, onGenerate }) {
 
   useEffect(() => {
     const handlePaste = (event) => {
+      const target = event.target;
+      const isEditableTarget = target instanceof HTMLElement && (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      );
+      if (isEditableTarget) return;
+
       const text = event.clipboardData?.getData('text/plain');
       if (!applyPastedText(text)) return;
       event.preventDefault();
@@ -2601,7 +2814,7 @@ function DanceCreateComposerModal({ onClose, onGenerate }) {
                 );
               })}
             </div>
-            <form onSubmit={generate} className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-black px-4 py-2">
+            <form onSubmit={handleComposerPrimaryAction} className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-black px-4 py-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -2642,26 +2855,120 @@ function DanceCreateComposerModal({ onClose, onGenerate }) {
                 )}
               </div>
 
-              <button type="submit" className="dance-create-generate">
-                <span>{status}</span>
-                <span className="dance-create-generate-divider" aria-hidden="true" />
-                <Zap size={15} fill="currentColor" strokeWidth={0} />
-                <span>{tokenUse}</span>
-              </button>
+              <div className="dance-create-actions">
+                {composerStep === 'details' && (
+                  <button type="button" className="dance-create-previous" onClick={returnToComposerMusic}>Previous</button>
+                )}
+                <button type="submit" className="dance-create-generate">
+                  <span>{status}</span>
+                  <span className="dance-create-generate-divider" aria-hidden="true" />
+                  <Zap size={15} fill="currentColor" strokeWidth={0} />
+                  <span>{tokenUse}</span>
+                </button>
+              </div>
             </form>
-            <DanceCreateSourcePreview description={sourceDescription} metadata={sourceMetadata} />
+            {composerStep === 'details' ? (
+              <CreationDetailsStep />
+            ) : (
+              <MusicSourceEmbedPreview description={sourceDescription} metadata={sourceMetadata} />
+            )}
       </section>
     </div>
   );
 }
 
 
-function DanceCreateSourcePreview({ description, metadata }) {
+function CreationDetailsStep() {
+  const [prompt, setPrompt] = useState('');
+  const [reference, setReference] = useState(null);
+  const referenceInputRef = useRef(null);
+
+  useEffect(() => () => {
+    if (reference?.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(reference.previewUrl);
+  }, [reference]);
+
+  function applyReferenceFile(file) {
+    if (!file || !file.type?.startsWith('image/')) return false;
+    const previewUrl = URL.createObjectURL(file);
+    setReference((current) => {
+      if (current?.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(current.previewUrl);
+      return { file, previewUrl };
+    });
+    return true;
+  }
+
+  function handleReferenceDrop(event) {
+    event.preventDefault();
+    const imageFile = Array.from(event.dataTransfer.files ?? []).find((file) => file.type.startsWith('image/'));
+    applyReferenceFile(imageFile);
+  }
+
+  function handleReferencePaste(event) {
+    const imageFile = Array.from(event.clipboardData.files ?? []).find((file) => file.type.startsWith('image/'));
+    if (!imageFile) return;
+    event.preventDefault();
+    applyReferenceFile(imageFile);
+  }
+
+  return (
+    <section className="creation-details-step" aria-label="프롬프트와 레퍼런스 입력">
+      <label className="creation-prompt-field">
+        <span>프롬프트 입력</span>
+        <textarea
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
+          placeholder="예: 후렴에 맞춰 강한 포인트 안무, 상체 웨이브와 카메라 친화적인 마무리"
+        />
+      </label>
+
+      <div
+        className={`creation-reference-drop ${reference ? 'has-reference' : ''}`}
+        role="button"
+        tabIndex={0}
+        onDrop={handleReferenceDrop}
+        onDragOver={(event) => event.preventDefault()}
+        onPaste={handleReferencePaste}
+        onClick={() => referenceInputRef.current?.click()}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          referenceInputRef.current?.click();
+        }}
+      >
+        <input
+          ref={referenceInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(event) => {
+            applyReferenceFile(event.target.files?.[0]);
+            event.target.value = '';
+          }}
+        />
+        {reference ? (
+          <>
+            <img src={reference.previewUrl} alt="선택한 레퍼런스" />
+            <strong>{reference.file.name}</strong>
+            <span>다른 이미지를 붙여넣거나 드래그해서 교체할 수 있어요.</span>
+          </>
+        ) : (
+          <>
+            <UploadCloud size={30} strokeWidth={2.4} />
+            <strong>사진 붙여넣기 · 드래그 · 업로드</strong>
+            <span>이미지를 붙여넣거나 끌어오거나 클릭해서 업로드하세요.</span>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
+
+function MusicSourceEmbedPreview({ description, metadata, placeholder = '링크를 넣거나 파일을 업로드 하세요' }) {
   if (!description) {
     return (
       <div className="dance-create-preview-placeholder">
         <Clapperboard size={30} strokeWidth={2.2} />
-        <span>링크를 넣거나 파일을 업로드 하세요</span>
+        <span>{placeholder}</span>
       </div>
     );
   }
@@ -2805,7 +3112,7 @@ function CommunityExamples({ sidebarExpanded }) {
 
   return (
     <>
-      <section className="relative z-10 -mt-32 w-full px-4 pb-20" aria-label="Community example videos">
+      <section className="relative z-10 mt-10 w-full px-4 pb-20" aria-label="Community example videos">
         <div className="mb-5">
           <h2 className="inline-flex items-center gap-3 text-[clamp(28px,3.6vw,48px)] font-black leading-none tracking-[-0.045em] text-white"><Flame className="text-mvnt-orange" size={34} fill="currentColor" /> Trend</h2>
           <div className="relative z-20 mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -3011,7 +3318,7 @@ function TrendVideoModal({ video, index, videos, onSelect, onClose, sidebarExpan
       offsetX: event.clientX - rect.left,
       offsetY: event.clientY - rect.top
     };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
+    captureElement.setPointerCapture?.(event.pointerId);
   }
 
   function moveCommentDrag(event) {
