@@ -153,13 +153,27 @@ export function ThreeDanceScene() {
   const mountRef = useRef(null);
   const trackingRef = useRef(true);
   const resetSceneCameraRef = useRef(() => {});
+  const captureSceneImageRef = useRef(() => null);
+  const skeletonRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [tracking, setTracking] = useState(true);
+  const [skeleton, setSkeleton] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
 
   useEffect(() => {
     trackingRef.current = tracking;
   }, [tracking]);
+
+  useEffect(() => {
+    skeletonRef.current = skeleton;
+  }, [skeleton]);
+
+  useEffect(() => {
+    if (!statusMessage) return undefined;
+    const statusTimer = window.setTimeout(() => setStatusMessage(''), 1800);
+    return () => window.clearTimeout(statusTimer);
+  }, [statusMessage]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -168,6 +182,7 @@ export function ThreeDanceScene() {
     let disposed = false;
     let frameId = 0;
     let model = null;
+    let skeletonHelper = null;
     let bones = new Map();
     const clock = new THREE.Clock();
     const desiredCameraTarget = new THREE.Vector3();
@@ -180,7 +195,7 @@ export function ThreeDanceScene() {
     camera.position.copy(defaultCameraPosition);
     camera.lookAt(defaultCameraTarget);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true });
     renderer.setClearColor(0xffffff, 1);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
@@ -223,6 +238,11 @@ export function ThreeDanceScene() {
       camera.position.copy(defaultCameraPosition);
       controls.target.copy(defaultCameraTarget);
       controls.update();
+    };
+
+    captureSceneImageRef.current = () => {
+      effect.render(scene, camera);
+      return renderer.domElement.toDataURL('image/png');
     };
 
     const effect = new OutlineEffect(renderer, {
@@ -331,7 +351,13 @@ export function ThreeDanceScene() {
           setFailed(true);
           return;
         }
+        skeletonHelper = new THREE.SkeletonHelper(model);
+        skeletonHelper.visible = skeletonRef.current;
+        skeletonHelper.material.depthTest = false;
+        skeletonHelper.material.transparent = true;
+        skeletonHelper.material.opacity = 0.78;
         scene.add(model);
+        scene.add(skeletonHelper);
         setLoading(false);
       },
       undefined,
@@ -346,6 +372,7 @@ export function ThreeDanceScene() {
       if (disposed) return;
       const elapsed = clock.getElapsedTime();
       if (model) animateDance(model, bones, elapsed);
+      if (skeletonHelper) skeletonHelper.visible = skeletonRef.current;
 
       const followX = trackingRef.current && model ? model.rotation.z * 1.25 : controls.target.x;
       const followY = trackingRef.current && model ? 1.38 + model.position.y * 0.45 : controls.target.y;
@@ -373,6 +400,7 @@ export function ThreeDanceScene() {
       window.cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
       resetSceneCameraRef.current = () => {};
+      captureSceneImageRef.current = () => null;
       controls.removeEventListener('start', handleControlsStart);
       controls.dispose();
       scene.traverse((object) => {
@@ -392,6 +420,27 @@ export function ThreeDanceScene() {
     };
   }, []);
 
+  const saveSceneImage = () => {
+    const imageData = captureSceneImageRef.current();
+    if (!imageData) return;
+    try {
+      window.localStorage?.setItem('mvnt-dance-saved-preview', imageData);
+      setStatusMessage('현재 춤 장면을 저장했어요');
+    } catch {
+      setStatusMessage('저장할 수 없어 다운로드를 사용해 주세요');
+    }
+  };
+
+  const downloadSceneImage = () => {
+    const imageData = captureSceneImageRef.current();
+    if (!imageData) return;
+    const link = document.createElement('a');
+    link.href = imageData;
+    link.download = 'mvnt-dance-preview.png';
+    link.click();
+    setStatusMessage('댄스 프리뷰를 다운로드했어요');
+  };
+
   return (
     <div ref={mountRef} className="three-dance-scene" aria-label="3D dancing mannequin preview">
       {loading && (
@@ -401,16 +450,33 @@ export function ThreeDanceScene() {
         </div>
       )}
       {failed && <div className="three-dance-loading" role="alert">3D studio failed to load</div>}
-      <div className="three-dance-camera-panel" role="group" aria-label="3D camera controls">
+      <div className="three-dance-camera-panel" role="group" aria-label="춤 보기 도구">
         <button
           type="button"
-          className={`three-dance-track-button ${tracking ? 'is-active' : ''}`}
+          className={`three-dance-tool-button ${tracking ? 'is-active' : ''}`}
+          aria-label="트래킹 켜기 끄기"
           aria-pressed={tracking}
           onClick={() => setTracking((current) => !current)}
         >
-          Tracking {tracking ? 'ON' : 'OFF'}
+          트래킹 {tracking ? 'ON' : 'OFF'}
+        </button>
+        <button
+          type="button"
+          className={`three-dance-tool-button ${skeleton ? 'is-active' : ''}`}
+          aria-label="스켈레톤 켜기 끄기"
+          aria-pressed={skeleton}
+          onClick={() => setSkeleton((current) => !current)}
+        >
+          스켈레톤 {skeleton ? 'ON' : 'OFF'}
+        </button>
+        <button type="button" className="three-dance-tool-button" onClick={saveSceneImage} aria-label="현재 춤 장면 저장">
+          저장
+        </button>
+        <button type="button" className="three-dance-tool-button" onClick={downloadSceneImage} aria-label="현재 춤 장면 다운로드">
+          다운로드
         </button>
       </div>
+      {statusMessage && <div className="three-dance-status" role="status">{statusMessage}</div>}
     </div>
   );
 }

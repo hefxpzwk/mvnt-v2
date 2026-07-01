@@ -52,13 +52,13 @@
 - Color: dark studio base with neon lime, cyan, pink, and violet accents.
 - Typography: large compressed-feeling hero type via system sans, tight tracking for high-energy branding.
 - Spacing/layout rhythm: roomy cards, 14–18px grid gaps, large sectional breathing room.
-- Shape/radius/elevation: rounded glass panels, soft borders, deep shadows.
-- Motion: lightweight smooth scrolling and CSS/video-driven prototype animation; avoid blocking animation.
+- Shape/radius/elevation: rounded glass panels for marketing surfaces; creator-editor surfaces may use familiar timeline/dock structure, but must retain MVNT visual identity: black single-color editor surfaces, subtle glass depth, restrained contrast, and expressive rounded controls.
+- Motion: lightweight smooth scrolling and CSS/video-driven prototype animation; avoid blocking animation. Bottom editor panels should dock/undock predictably, keep controls discoverable, and feel like MVNT rather than a generic NLE clone; avoid colorful gradients on the dance editor dock unless explicitly requested.
 - Imagery/iconography: Lucide React icons for interface clarity; community video assets anchor the prototype experience.
 
 ## Components
 - Existing components to reuse: PWA manifest/favicons and static community media assets.
-- New/changed components: side rail, top search, creation composer, community cards, reels feed, project dashboard, plan cards, trend modal.
+- New/changed components: side rail, top search, creation composer, community cards, reels feed, project dashboard, plan cards, trend modal, Dance editor dock with mini timeline, timeline mode, and prompt/genre mode.
 - Variants and states: active nav/tag/filter, sidebar expanded/collapsed, staged dummy generation status, modal/video playback.
 - Token/component ownership: `src/index.css` owns tokens and global component styling; `src/lib/navigation.js` owns route/navigation contracts; `src/lib/dummy.js` owns legacy placeholder content derived from that navigation contract.
 

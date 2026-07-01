@@ -10,11 +10,18 @@ test('Explore music button opens a header-below song detail panel left of fixed 
   assert.match(source, /aria-label="음악 상세"/);
   assert.match(source, /bg-\[#080808\]\/94/);
   assert.match(source, /from-mvnt-orange via-pink-500 to-violet-600/);
+  assert.match(source, /artist: 'Hearts2Hearts'/);
+  assert.doesNotMatch(source, /<span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-mvnt-orange to-mvnt-yellow/);
+  assert.doesNotMatch(source, /artist: '@/);
   assert.match(source, /top-12/);
   assert.match(source, /xl:bottom-0/);
   assert.match(source, /xl:right-\[84px\] xl:w-\[430px\]/);
   assert.match(source, /이 노래로 춤 만들기/);
   assert.match(source, /사용한 영상들/);
+  assert.match(source, /<section className="min-h-0 flex-1 overflow-y-auto/);
+  assert.match(source, /onClick=\{\(\) => onOpenVideo\?\.\(video,/);
+  assert.match(source, /const \[selectedMusicVideo, setSelectedMusicVideo\]/);
+  assert.match(source, /<TrendVideoModal/);
   assert.match(source, /const \[activeMusicIndex, setActiveMusicIndex\]/);
   assert.match(source, /onOpen=\{\(\) => openExploreMusic\(index\)\}/);
   assert.equal((source.match(/style=\{\{ transform: activeMusicIndex === index \? 'translateX\(-260px\)' : 'translateX\(0\)' \}\}/g) || []).length, 2);
