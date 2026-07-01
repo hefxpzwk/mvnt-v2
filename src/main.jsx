@@ -943,17 +943,27 @@ function AttachmentPreview({ description, metadata, onClear }) {
 
 
 
-function CommunityVideoCard({ video, index, onClick }) {
+function CommunityVideoCard({ video, index, onClick, selected = false, playback = 'auto' }) {
   const Component = onClick ? 'button' : 'article';
+  const manualPlayback = playback === 'hover-or-selected';
   return (
     <Component
       type={onClick ? 'button' : undefined}
       onClick={onClick}
-      className={`group relative isolate overflow-hidden border border-white/10 bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] ${onClick ? 'outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45' : ''}`}
+      className={`group relative isolate overflow-hidden border bg-neutral-950 p-0 text-left shadow-[0_24px_70px_rgba(0,0,0,.35)] ${selected ? 'border-mvnt-orange ring-2 ring-mvnt-orange/50' : 'border-white/10'} ${onClick ? 'outline-none transition hover:-translate-y-1 hover:border-mvnt-orange/55 focus-visible:border-mvnt-orange focus-visible:ring-2 focus-visible:ring-mvnt-orange/45' : ''}`}
       aria-label={onClick ? `${video.title} 상세 보기` : undefined}
     >
       <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
-      <AutoPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} preload={index < 3 ? 'auto' : 'metadata'} eager={index < 2} />
+      {selected && (
+        <span className="pointer-events-none absolute right-3 top-3 z-30 grid size-9 place-items-center rounded-full bg-mvnt-orange text-black shadow-[0_10px_28px_rgba(255,138,0,.36)] ring-2 ring-white/30">
+          <Check size={19} strokeWidth={3} />
+        </span>
+      )}
+      {manualPlayback ? (
+        <HoverPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} selected={selected} />
+      ) : (
+        <AutoPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} preload={index < 3 ? 'auto' : 'metadata'} eager={index < 2} />
+      )}
       <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/78 to-transparent p-4 pb-12">
           <div className="flex items-center gap-2">
@@ -979,6 +989,39 @@ function CommunityVideoCard({ video, index, onClick }) {
     </Component>
   );
 }
+
+function HoverPlayVideo({ className, src, selected = false }) {
+  const videoRef = useRef(null);
+  const [hovered, setHovered] = useState(false);
+  const active = selected || hovered;
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (active) {
+      video.play().catch(() => {});
+      return;
+    }
+    video.pause();
+  }, [active, src]);
+
+  return (
+    <video
+      ref={videoRef}
+      className={className}
+      src={src}
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+    />
+  );
+}
+
 
 function ReelVideo({ reel, index }) {
   const containerRef = useRef(null);
@@ -1806,26 +1849,47 @@ function ExplorePage() {
 
 function DancePage() {
   const [choiceOverlayVisible, setChoiceOverlayVisible] = useState(true);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [activeTemplate, setActiveTemplate] = useState(null);
 
   const dismissChoiceOverlay = () => setChoiceOverlayVisible(false);
+  const openTemplatePicker = () => setTemplatePickerOpen(true);
+  const applyTemplate = (template) => {
+    setActiveTemplate(template);
+    setTemplatePickerOpen(false);
+    setChoiceOverlayVisible(false);
+  };
 
   return (
     <section className="relative h-screen overflow-hidden bg-white text-[#202020]" aria-label="댄스">
-      <div className={choiceOverlayVisible ? 'dance-stage is-choosing' : 'dance-stage'}>
+      <div className={choiceOverlayVisible || templatePickerOpen ? 'dance-stage is-choosing' : 'dance-stage'}>
         <Suspense fallback={<div className="three-dance-scene"><div className="three-dance-loading" role="status"><span className="three-dance-spinner" aria-hidden="true" /><span>Loading studio</span></div></div>}>
           <ThreeDanceScene />
         </Suspense>
       </div>
-      {choiceOverlayVisible && <DanceChoiceOverlay onSelect={dismissChoiceOverlay} />}
+      {activeTemplate && !choiceOverlayVisible && !templatePickerOpen && (
+        <div className="dance-active-template" aria-live="polite">
+          <Check size={15} strokeWidth={3} />
+          <span>{activeTemplate.title} 템플릿 적용됨</span>
+        </div>
+      )}
+      {choiceOverlayVisible && <DanceChoiceOverlay onTemplate={openTemplatePicker} onCreate={dismissChoiceOverlay} onUpload={dismissChoiceOverlay} />}
+      {templatePickerOpen && (
+        <DanceTemplatePicker
+          initialSelectedTemplate={activeTemplate}
+          onClose={() => setTemplatePickerOpen(false)}
+          onConfirm={applyTemplate}
+        />
+      )}
     </section>
   );
 }
 
-function DanceChoiceOverlay({ onSelect }) {
+function DanceChoiceOverlay({ onTemplate, onCreate, onUpload }) {
   const choices = [
-    { label: '템플릿', icon: FileText },
-    { label: '창조', icon: Wand2 },
-    { label: '불러오기', icon: UploadCloud, upload: true }
+    { label: '템플릿', icon: FileText, onClick: onTemplate },
+    { label: '창조', icon: Wand2, onClick: onCreate },
+    { label: '불러오기', icon: UploadCloud, upload: true, onClick: onUpload }
   ];
 
   return (
@@ -1837,31 +1901,133 @@ function DanceChoiceOverlay({ onSelect }) {
           <p>템플릿으로 빠르게 시작하거나, 새 안무를 만들고, 저장된 작업을 불러올 수 있어요.</p>
         </div>
         <div className="dance-choice-actions">
-          {choices.map(({ label, icon: Icon, upload }) => {
-          const content = (
-            <>
-              <Icon size={24} strokeWidth={2.5} />
-              <span>{label}</span>
-            </>
-          );
-
-          if (upload) {
-            return (
-              <label key={label} className="dance-choice-button">
-                {content}
-                <input className="sr-only" type="file" accept=".json,.bvh,.fbx,.glb,.gltf" onChange={onSelect} />
-              </label>
+          {choices.map(({ label, icon: Icon, upload, onClick }) => {
+            const content = (
+              <>
+                <Icon size={24} strokeWidth={2.5} />
+                <span>{label}</span>
+              </>
             );
-          }
 
-          return (
-            <button key={label} type="button" className="dance-choice-button" onClick={onSelect}>
-              {content}
-            </button>
-          );
-        })}
+            if (upload) {
+              return (
+                <label key={label} className="dance-choice-button">
+                  {content}
+                  <input className="sr-only" type="file" accept=".json,.bvh,.fbx,.glb,.gltf" onChange={onClick} />
+                </label>
+              );
+            }
+
+            return (
+              <button key={label} type="button" className="dance-choice-button" onClick={onClick}>
+                {content}
+              </button>
+            );
+          })}
         </div>
       </div>
+    </div>
+  );
+}
+
+function DanceTemplatePicker({ initialSelectedTemplate, onClose, onConfirm }) {
+  const [activeTag, setActiveTag] = useState('All');
+  const [query, setQuery] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState(initialSelectedTemplate);
+  const visibleTemplates = filterCommunityVideos({ activeTag, query });
+  const selectedKey = selectedTemplate ? `${selectedTemplate.title}-${selectedTemplate.creator}` : '';
+
+  function confirmTemplate() {
+    if (!selectedTemplate) return;
+    onConfirm(selectedTemplate);
+  }
+
+  return (
+    <div className="dance-template-modal-shell" role="dialog" aria-modal="true" aria-labelledby="dance-template-title">
+      <div className="dance-template-modal-backdrop" aria-hidden="true" onClick={onClose} />
+      <section className="dance-template-modal">
+        <header className="dance-template-modal-header">
+          <div>
+            <h2 id="dance-template-title">템플릿 선택</h2>
+          </div>
+          <button type="button" className="dance-template-close" onClick={onClose} aria-label="템플릿 선택 닫기">
+            <X size={19} strokeWidth={2.6} />
+          </button>
+        </header>
+
+        <div className="dance-template-searchbar">
+          <Search size={19} />
+          <input
+            className="min-w-0 flex-1 bg-transparent text-base font-bold text-white outline-none placeholder:text-mvnt-muted"
+            placeholder="템플릿, 크리에이터, 장르 검색"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          {query && (
+            <button type="button" className="grid size-7 place-items-center rounded-full text-white/46 transition hover:bg-white/10 hover:text-white" onClick={() => setQuery('')} aria-label="검색어 지우기">
+              <X size={15} strokeWidth={2.7} />
+            </button>
+          )}
+        </div>
+
+        <div className="dance-template-filter-row" aria-label="템플릿 필터">
+          <ProgressiveCommunityTagFilters activeTag={activeTag} onTagChange={setActiveTag} countLabel={`${visibleTemplates.length} templates`} />
+        </div>
+
+        <div className="dance-template-grid subtle-scrollbar">
+          {visibleTemplates.map((video, index) => {
+            const key = `${video.title}-${video.creator}`;
+            return (
+              <CommunityVideoCard
+                key={`${video.src}-${index}`}
+                video={video}
+                index={index}
+                selected={selectedKey === key}
+                playback="hover-or-selected"
+                onClick={() => setSelectedTemplate((current) => {
+                  const currentKey = current ? `${current.title}-${current.creator}` : '';
+                  return currentKey === key ? null : video;
+                })}
+              />
+            );
+          })}
+          {visibleTemplates.length === 0 && (
+            <div className="dance-template-empty">검색 결과가 없습니다.</div>
+          )}
+        </div>
+
+        <footer className="dance-template-footer">
+          <div className="dance-template-selected-track">
+            {selectedTemplate ? (
+              <>
+                <span className="dance-template-track-art" style={{ '--template-hue': (communityVideos.indexOf(selectedTemplate) * 42 + 128) % 360 }}>
+                  <Music2 size={20} strokeWidth={2.5} />
+                </span>
+                <span className="min-w-0">
+                  <strong>{selectedTemplate.title}</strong>
+                  <small>{selectedTemplate.creator}</small>
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="dance-template-track-art is-empty">
+                  <Music2 size={20} strokeWidth={2.5} />
+                </span>
+                <span className="min-w-0">
+                  <strong>템플릿을 선택해 주세요</strong>
+                  <small>가수와 제목이 여기에 표시됩니다</small>
+                </span>
+              </>
+            )}
+          </div>
+          <button type="button" className="dance-template-confirm" onClick={confirmTemplate} disabled={!selectedTemplate}>
+            <span>Generate</span>
+            <span className="dance-template-confirm-divider" aria-hidden="true" />
+            <Zap size={17} fill="currentColor" strokeWidth={2.8} />
+            <span>25</span>
+          </button>
+        </footer>
+      </section>
     </div>
   );
 }
@@ -1908,7 +2074,11 @@ function CommunityExamples({ sidebarExpanded }) {
               aria-label={`${video.title} 상세 보기`}
             >
               <div className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-t ${video.tone} via-transparent to-black/10 opacity-70 transition-opacity duration-300 group-hover:opacity-95`} />
-              <AutoPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} preload={index < 3 ? 'auto' : 'metadata'} eager={index < 2} />
+              {manualPlayback ? (
+        <HoverPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} selected={selected} />
+      ) : (
+        <AutoPlayVideo className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.035]" src={video.src} preload={index < 3 ? 'auto' : 'metadata'} eager={index < 2} />
+      )}
               <div className="pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/78 to-transparent p-4 pb-12">
                   <div className="flex items-center gap-2">
