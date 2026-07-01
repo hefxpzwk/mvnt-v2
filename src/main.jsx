@@ -434,7 +434,12 @@ function Sidebar({ open, textVisible, targetOpen, activePage, onNavigate, onTogg
         })}
       </nav>
 
-      <div className="-mx-4 mt-3 border-t border-white/10 bg-black/20">
+      <button type="button" className="sidebar-tutorial-button" title="튜토리얼" aria-label="튜토리얼 열기">
+        <HelpCircle size={18} strokeWidth={2.45} />
+        <span className={`min-w-0 truncate transition-opacity duration-150 ${textVisible ? 'opacity-100' : 'opacity-0'}`} aria-hidden={!textVisible}>튜토리얼</span>
+      </button>
+
+      <div className="-mx-4 mt-2 border-t border-white/10 bg-black/20">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button type="button" className="group/user flex min-h-[54px] w-full items-center gap-2 px-4 py-2.5 text-left text-mvnt-text outline-none transition-colors hover:bg-white/[.07] focus-visible:bg-white/[.07]" aria-label="Open profile menu">
@@ -2476,21 +2481,17 @@ function DancePage() {
           ) : (
             <div className="dance-general-editor" aria-label="일반 설정">
               <section className="dance-general-controls">
-                <label className="dance-general-field dance-general-song-field">
+                <section className="dance-general-field dance-general-song-field">
                   <span>노래</span>
-                  <div className="dance-general-input-row">
-                    <Music2 size={18} strokeWidth={2.5} />
-                    <input value={generalSong} onChange={(event) => setGeneralSong(event.target.value)} placeholder="노래 링크, 제목, 파일명을 입력하세요" />
-                  </div>
                   <div className="dance-general-music-preview">
                     <MusicSourceEmbedPreview description={generalSongDescription} metadata={generalSongMetadata} placeholder="기본 노래를 입력하세요" />
                   </div>
-                </label>
+                </section>
                 <label className="dance-general-field is-prompt">
                   <span>기본 프롬프트</span>
                   <textarea value={generalPrompt} onChange={(event) => setGeneralPrompt(event.target.value)} placeholder="예: 후렴에 맞춘 포인트 안무, 부드러운 웨이브, 강한 마무리" />
+                  <button type="button" className="dance-general-generate" onClick={generateGeneralDance}>춤 생성</button>
                 </label>
-                <button type="button" className="dance-general-generate" onClick={generateGeneralDance}>춤 생성</button>
               </section>
             </div>
           )}

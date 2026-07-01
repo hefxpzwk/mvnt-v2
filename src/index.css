@@ -2669,3 +2669,150 @@ button { cursor: pointer; }
 .dance-general-music-preview .dance-create-preview-card {
   min-height: 86px;
 }
+
+/* Refined general editor composition: cohesive studio cards instead of floating fields. */
+.dance-general-controls {
+  grid-template-columns: minmax(330px, .95fr) minmax(420px, 1.1fr) minmax(170px, 220px);
+  align-items: stretch;
+  gap: 16px;
+  padding: 20px 24px;
+}
+.dance-general-field {
+  gap: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255,255,255,.08), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.035));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 18px 54px rgba(0,0,0,.26);
+  padding: 16px;
+}
+.dance-general-field span {
+  padding-left: 2px;
+  color: rgba(255,255,255,.58);
+  font-size: 13px;
+  letter-spacing: -.02em;
+}
+.dance-general-input-row {
+  min-height: 48px;
+  border-color: rgba(255,255,255,.11);
+  border-radius: 18px;
+  background: rgba(0,0,0,.34);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055);
+}
+.dance-general-input-row input,
+.dance-general-field textarea {
+  font-size: 15px;
+  letter-spacing: -.025em;
+}
+.dance-general-field textarea {
+  flex: 1 1 auto;
+  min-height: 154px;
+  border-color: rgba(255,255,255,.11);
+  border-radius: 22px;
+  background: rgba(0,0,0,.34);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055);
+}
+.dance-general-field.is-prompt {
+  display: flex;
+  flex-direction: column;
+}
+.dance-general-music-preview {
+  flex: 1 1 auto;
+  min-height: 154px;
+  border-color: rgba(255,255,255,.11);
+  border-radius: 22px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.055);
+}
+.dance-general-music-preview .dance-create-preview {
+  max-height: none;
+  height: 100%;
+  min-height: 154px;
+  aspect-ratio: auto;
+}
+.dance-general-music-preview .dance-create-preview iframe {
+  height: 100%;
+}
+.dance-general-generate {
+  align-self: stretch;
+  min-height: 0;
+  border-radius: 30px;
+  padding: 0 24px;
+  box-shadow: 0 22px 60px rgba(240, 45, 152, .26), inset 0 1px 0 rgba(255,255,255,.25);
+  font-size: 16px;
+  letter-spacing: -.035em;
+}
+@media (max-width: 900px) {
+  .dance-general-controls {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+  .dance-general-generate {
+    min-height: 54px;
+  }
+}
+
+.sidebar-tutorial-button {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 14px;
+  background: rgba(255,255,255,.045);
+  color: rgba(255,255,255,.58);
+  padding: 0;
+  text-align: left;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+}
+.sidebar-tutorial-button svg {
+  justify-self: center;
+}
+.sidebar-tutorial-button span {
+  font-size: 13px;
+  font-weight: 800;
+}
+.sidebar-tutorial-button:hover,
+.sidebar-tutorial-button:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(255,138,0,.28);
+  background: rgba(255,138,0,.08);
+  color: #fff;
+  outline: none;
+}
+
+/* Prompt card owns its primary action. */
+.dance-general-controls {
+  grid-template-columns: minmax(330px, .92fr) minmax(480px, 1.08fr);
+}
+.dance-general-generate {
+  align-self: end;
+  min-height: 54px;
+  width: min(240px, 100%);
+  justify-self: end;
+  border-radius: 999px;
+}
+@media (max-width: 900px) {
+  .dance-general-controls {
+    grid-template-columns: 1fr;
+  }
+  .dance-general-generate {
+    width: 100%;
+  }
+}
+
+/* Let the music embed stand alone without a second outer card. */
+.dance-general-song-field {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+.dance-general-song-field > span {
+  padding-left: 2px;
+}
+.dance-general-music-preview {
+  border-radius: 24px;
+}

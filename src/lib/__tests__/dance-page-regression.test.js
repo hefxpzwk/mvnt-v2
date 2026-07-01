@@ -223,12 +223,13 @@ test('Dance edit panel includes a general tab for song prompt and dance generati
   assert.match(source, /danceEditorMode === 'general'/);
   assert.match(source, /className="dance-general-editor"/);
   assert.match(source, /const generalSongDescription = generalSong\.trim\(\) \? describeSource/);
+  assert.doesNotMatch(source, /placeholder="노래 링크, 제목, 파일명을 입력하세요"/);
   assert.match(source, /fetchSourceMetadata\(generalSongDescription\)/);
   assert.match(source, />노래<\/span>/);
   assert.match(source, /className="dance-general-music-preview"/);
   assert.match(source, /<MusicSourceEmbedPreview description=\{generalSongDescription\} metadata=\{generalSongMetadata\}/);
   assert.match(source, />기본 프롬프트<\/span>/);
-  assert.match(source, />춤 생성<\/button>/);
+  assert.match(source, /className="dance-general-field is-prompt"[\s\S]*>춤 생성<\/button>/);
   assert.match(source, /generateGeneralDance/);
   assert.match(styles, /\.dance-general-editor/);
   assert.match(styles, /\.dance-general-music-preview/);
